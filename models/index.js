@@ -19,11 +19,16 @@ const User = sequelize.define('User', {
 const Faculty = sequelize.define('Faculty', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   name: { type: DataTypes.STRING(200), allowNull: false },
+  nameEn: { type: DataTypes.STRING(200), allowNull: true },
   slug: { type: DataTypes.STRING(220), unique: true, allowNull: false },
   domaine: { type: DataTypes.STRING(200), allowNull: false },
-  description: { type: DataTypes.TEXT, allowNull: true },
+  domaineEn: { type: DataTypes.STRING(200), allowNull: true },
+  description: { type: DataTypes.TEXT('long'), allowNull: true },
+  descriptionEn: { type: DataTypes.TEXT('long'), allowNull: true },
   dean: { type: DataTypes.STRING(200), allowNull: true },
+  deanEn: { type: DataTypes.STRING(200), allowNull: true },
   secretary: { type: DataTypes.STRING(200), allowNull: true },
+  secretaryEn: { type: DataTypes.STRING(200), allowNull: true },
   coverImage: { type: DataTypes.STRING(500), allowNull: true },
 }, { tableName: 'faculties', timestamps: true });
 
@@ -31,10 +36,14 @@ const Filiere = sequelize.define('Filiere', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   facultyId: { type: DataTypes.INTEGER, allowNull: false },
   name: { type: DataTypes.STRING(200), allowNull: false },
+  nameEn: { type: DataTypes.STRING(200), allowNull: true },
   slug: { type: DataTypes.STRING(220), allowNull: false },
   description: { type: DataTypes.TEXT, allowNull: true },
+  descriptionEn: { type: DataTypes.TEXT, allowNull: true },
   duration: { type: DataTypes.STRING(50), allowNull: true },
+  durationEn: { type: DataTypes.STRING(50), allowNull: true },
   diploma: { type: DataTypes.STRING(120), allowNull: true },
+  diplomaEn: { type: DataTypes.STRING(120), allowNull: true },
 }, { tableName: 'filieres', timestamps: true });
 
 const Content = sequelize.define('Content', {
@@ -126,6 +135,16 @@ const Center = sequelize.define('Center', {
   timestamps: true,
 });
 
+const Faq = sequelize.define('Faq', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  question: { type: DataTypes.STRING(500), allowNull: false },
+  questionEn: { type: DataTypes.STRING(500), allowNull: true },
+  answer: { type: DataTypes.TEXT, allowNull: false },
+  answerEn: { type: DataTypes.TEXT, allowNull: true },
+  sortOrder: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+  isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
+}, { tableName: 'faqs', timestamps: true });
+
 // Helpers to (de)serialize JSON fields
 const JSON_FIELDS = ['images', 'direction', 'domaineInterventions', 'etudesRealisees', 'partenaires', 'contacts'];
 function serializeCenter(values) {
@@ -167,4 +186,4 @@ PasswordResetToken.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 Center.belongsTo(Faculty, { foreignKey: 'facultyId', as: 'faculty' });
 Center.belongsTo(User, { foreignKey: 'authorId', as: 'author' });
 
-module.exports = { sequelize, User, Faculty, Filiere, Content, Newsletter, ContactMessage, PasswordResetToken, Schedule, Center, serializeCenter, deserializeCenter };
+module.exports = { sequelize, User, Faculty, Filiere, Content, Newsletter, ContactMessage, PasswordResetToken, Schedule, Center, Faq, serializeCenter, deserializeCenter };

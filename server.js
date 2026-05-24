@@ -11,6 +11,7 @@ const miscRoutes = require('./routes/misc');
 const cloudinaryRoutes = require('./routes/cloudinary');
 const scheduleRoutes = require('./routes/schedules');
 const centerRoutes = require('./routes/centers');
+const faqRoutes = require('./routes/faqs');
 
 const app = express();
 
@@ -44,6 +45,7 @@ app.use('/api/contents', contentRoutes);
 app.use('/api/cloudinary', cloudinaryRoutes);
 app.use('/api/schedules', scheduleRoutes);
 app.use('/api/centers', centerRoutes);
+app.use('/api/faqs', faqRoutes);
 app.use('/api', miscRoutes);
 
 // 404
@@ -60,14 +62,15 @@ const PORT = process.env.PORT || 4499;
 async function start() {
   try {
     await sequelize.authenticate();
-    console.log('[ SEED ] Database connected');
+    console.log('[ SYNC ] Database connected');
     // await sequelize.sync({ alter: true });
     // await seedDatabase();
+
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`Server running on port :`, PORT);
     });
   } catch (e) {
-    console.error('[ SEED ] Startup error:', e);
+    console.error('[ SYNC ] Startup error:', e);
     process.exit(1);
   }
 }

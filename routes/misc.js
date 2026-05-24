@@ -7,6 +7,9 @@ const router = express.Router();
 
 // Faculties
 router.get('/faculties', c.listFaculties);
+router.post('/faculties', requireAuth, requireRole('super_admin'), c.createFaculty);
+router.put('/faculties/:id', requireAuth, requireRole('super_admin'), c.updateFaculty);
+router.delete('/faculties/:id', requireAuth, requireRole('super_admin'), c.deleteFaculty);
 router.get('/faculties/:slug', c.getFaculty);
 router.get('/faculties/:slug/filieres/:filiereSlug', c.getFiliere);
 
@@ -28,5 +31,6 @@ router.get('/dashboard/stats', requireAuth, c.stats);
 // Users
 router.get('/users', requireAuth, requireRole('super_admin'), c.listUsers);
 router.put('/users/:id', requireAuth, requireRole('super_admin'), c.updateUser);
+router.delete('/users/:id', requireAuth, requireRole('super_admin'), c.deleteUser);
 
 module.exports = router;

@@ -1,28 +1,44 @@
-const sgMail = require('@sendgrid/mail');
+const nodemailer = require('nodemailer');
 
-const isConfigured = () => Boolean(process.env.SENDGRID_API_KEY && process.env.SENDER_EMAIL);
+const isConfigured = () => Boolean(
+  process.env.SMTP_USER &&
+  process.env.SMTP_PASS &&
+  process.env.SENDER_EMAIL
+);
+
+let transporter = null;
 
 if (isConfigured()) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // true pour le port 465 obligatoire avec Gmail
+    auth: {
+      user: process.env.SMTP_USER, // Ton adresse Gmail
+      pass: process.env.SMTP_PASS, // Ton mot de passe d'application à 16 caractères
+    },
+  });
 }
 
 async function sendMail({ to, subject, html, text }) {
   if (!isConfigured()) {
-    console.log('[SendGrid SKIP] Not configured. Would send to:', to, 'subject:', subject);
+    console.log('[Gmail SKIP] Not configured. Would send to:', to, 'subject:', subject);
     return { skipped: true };
   }
+
   try {
     const msg = {
-      to,
       from: process.env.SENDER_EMAIL,
+      to,
       subject,
       text: text || subject,
       html: html || `<p>${subject}</p>`,
     };
-    await sgMail.send(msg);
-    return { sent: true };
+
+    const info = await transporter.sendMail(msg);
+    return { sent: true, messageId: info.messageId };
   } catch (err) {
-    console.error('[SendGrid ERROR]', err?.response?.body || err.message);
+    console.error('[Gmail ERROR]', err.message);
     return { sent: false, error: err.message };
   }
 }
