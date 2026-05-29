@@ -33,4 +33,11 @@ router.get('/users', requireAuth, requireRole('super_admin'), c.listUsers);
 router.put('/users/:id', requireAuth, requireRole('super_admin'), c.updateUser);
 router.delete('/users/:id', requireAuth, requireRole('super_admin'), c.deleteUser);
 
+// Staff
+router.get('/staff', c.listStaff);
+router.get('/staff/:slug', c.getStaff);
+router.post('/staff', requireAuth, requireRole('super_admin'), c.createStaff);
+router.put('/staff/:id', requireAuth, requireRole('super_admin'), c.updateStaff);
+router.delete('/staff/:id', requireAuth, requireRole('super_admin'), c.deleteStaff);
+
 module.exports = router;

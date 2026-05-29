@@ -59,6 +59,7 @@ const Content = sequelize.define('Content', {
   location: { type: DataTypes.STRING(255), allowNull: true },
   authorId: { type: DataTypes.INTEGER, allowNull: false },
   facultyId: { type: DataTypes.INTEGER, allowNull: true },
+  filiereId: { type: DataTypes.INTEGER, allowNull: true },
   status: {
     type: DataTypes.ENUM('draft', 'pending', 'published', 'rejected'),
     defaultValue: 'pending',
@@ -145,6 +146,20 @@ const Faq = sequelize.define('Faq', {
   isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
 }, { tableName: 'faqs', timestamps: true });
 
+const StaffMember = sequelize.define('StaffMember', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  uuid: { type: DataTypes.STRING(80), allowNull: true },
+  slug: { type: DataTypes.STRING(200), unique: true, allowNull: false },
+  name: { type: DataTypes.STRING(200), allowNull: false },
+  role: { type: DataTypes.STRING(200), allowNull: false },
+  email: { type: DataTypes.TEXT, allowNull: true }, // JSON array string
+  phone: { type: DataTypes.TEXT, allowNull: true }, // JSON array string
+  image: { type: DataTypes.STRING(500), allowNull: true },
+  isOrganizer: { type: DataTypes.BOOLEAN, defaultValue: false },
+  extra: { type: DataTypes.TEXT, allowNull: true }, // JSON object string (bibliography, publications, researchInterests, cv)
+  socialLinks: { type: DataTypes.TEXT, allowNull: true }, // JSON array string
+}, { tableName: 'staff_members', timestamps: true });
+
 // Helpers to (de)serialize JSON fields
 const JSON_FIELDS = ['images', 'direction', 'domaineInterventions', 'etudesRealisees', 'partenaires', 'contacts'];
 function serializeCenter(values) {
@@ -165,6 +180,25 @@ function deserializeCenter(instance) {
   return obj;
 }
 
+const STAFF_JSON_FIELDS = ['email', 'phone', 'extra', 'socialLinks'];
+function serializeStaff(values) {
+  const out = { ...values };
+  STAFF_JSON_FIELDS.forEach((f) => {
+    if (out[f] !== undefined && typeof out[f] !== 'string') out[f] = JSON.stringify(out[f] ?? null);
+  });
+  return out;
+}
+function deserializeStaff(instance) {
+  if (!instance) return instance;
+  const obj = instance.toJSON ? instance.toJSON() : { ...instance };
+  STAFF_JSON_FIELDS.forEach((f) => {
+    if (typeof obj[f] === 'string') {
+      try { obj[f] = JSON.parse(obj[f]); } catch { obj[f] = null; }
+    }
+  });
+  return obj;
+}
+
 // Associations
 Faculty.hasMany(Filiere, { foreignKey: 'facultyId', as: 'filieres', onDelete: 'CASCADE' });
 Filiere.belongsTo(Faculty, { foreignKey: 'facultyId', as: 'faculty' });
@@ -174,7 +208,9 @@ Faculty.hasMany(User, { foreignKey: 'facultyId', as: 'publishers' });
 
 Content.belongsTo(User, { foreignKey: 'authorId', as: 'author' });
 Content.belongsTo(Faculty, { foreignKey: 'facultyId', as: 'faculty' });
+Content.belongsTo(Filiere, { foreignKey: 'filiereId', as: 'filiere' });
 User.hasMany(Content, { foreignKey: 'authorId', as: 'contents' });
+Filiere.hasMany(Content, { foreignKey: 'filiereId', as: 'contents' });
 
 Schedule.belongsTo(Faculty, { foreignKey: 'facultyId', as: 'faculty' });
 Schedule.belongsTo(Filiere, { foreignKey: 'filiereId', as: 'filiere' });
@@ -186,4 +222,4 @@ PasswordResetToken.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 Center.belongsTo(Faculty, { foreignKey: 'facultyId', as: 'faculty' });
 Center.belongsTo(User, { foreignKey: 'authorId', as: 'author' });
 
-module.exports = { sequelize, User, Faculty, Filiere, Content, Newsletter, ContactMessage, PasswordResetToken, Schedule, Center, Faq, serializeCenter, deserializeCenter };
+module.exports = { sequelize, User, Faculty, Filiere, Content, Newsletter, ContactMessage, PasswordResetToken, Schedule, Center, Faq, StaffMember, serializeCenter, deserializeCenter, serializeStaff, deserializeStaff };

@@ -63,8 +63,8 @@ async function start() {
   try {
     await sequelize.authenticate();
     console.log('[ SYNC ] Database connected');
-    // await sequelize.sync({ alter: true });
-    // await seedDatabase();
+    await sequelize.sync({ alter: true });
+    await seedDatabase();
 
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`Server running on port :`, PORT);

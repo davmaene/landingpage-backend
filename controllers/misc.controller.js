@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
 const slugify = require('slugify');
-const { Faculty, Filiere, Content, Newsletter, ContactMessage, User, Schedule, Faq, Center } = require('../models');
+const { Faculty, Filiere, Content, Newsletter, ContactMessage, User, Schedule, Faq, Center, StaffMember, serializeStaff, deserializeStaff } = require('../models');
 const { sendMail } = require('../utils/mailer');
 const { Response } = require('../utils/Response');
 
@@ -342,7 +342,7 @@ exports.stats = async (req, res) => {
     Filiere.count(),
     Center.count(),
     Faq.count(),
-    User.count(),
+    StaffMember.count(),
     Faculty.count({ distinct: true, col: 'domaine' }),
     Content.count({
       distinct: true,
@@ -415,6 +415,98 @@ exports.deleteUser = async (req, res) => {
     const u = await User.findByPk(req.params.id);
     if (!u) return Response(res, 404, { reason: 'Utilisateur introuvable' });
     await u.destroy();
+    return Response(res, 200, { deleted: true });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+// ---------------- Staff ----------------
+exports.listStaff = async (req, res) => {
+  try {
+    const items = await StaffMember.findAll({ order: [['name', 'ASC']] });
+    const rows = items.map(deserializeStaff);
+    return Response(res, 200, { length: rows.length, rows });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.getStaff = async (req, res) => {
+  try {
+    const item = await StaffMember.findOne({ where: { slug: req.params.slug } });
+    if (!item) return Response(res, 404, { reason: 'Membre du personnel introuvable' });
+    return Response(res, 200, { item: deserializeStaff(item) });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+const uniqueStaffSlug = async (name, excludeId) => {
+  let slug = slugify(name, { lower: true, strict: true });
+  const where = { slug };
+  if (excludeId) where.id = { [Op.ne]: excludeId };
+  const existing = await StaffMember.findOne({ where });
+  if (existing) slug = `${slug}-${Date.now()}`;
+  return slug;
+};
+
+exports.createStaff = async (req, res) => {
+  try {
+    const { name, role, email, phone, image, isOrganizer, extra, socialLinks } = req.body;
+    if (!name?.trim() || !role?.trim())
+      return Response(res, 401, { reason: 'Nom et rôle requis' });
+    const slug = await uniqueStaffSlug(name.trim());
+    const payload = serializeStaff({
+      slug,
+      name: name.trim(),
+      role: role.trim(),
+      email,
+      phone,
+      image,
+      isOrganizer: !!isOrganizer,
+      extra,
+      socialLinks,
+    });
+    const item = await StaffMember.create(payload);
+    return Response(res, 201, { item: deserializeStaff(item) });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.updateStaff = async (req, res) => {
+  try {
+    const item = await StaffMember.findByPk(req.params.id);
+    if (!item) return Response(res, 404, { reason: 'Membre du personnel introuvable' });
+    const { name, role, email, phone, image, isOrganizer, extra, socialLinks } = req.body;
+    
+    if (name?.trim()) {
+      item.name = name.trim();
+      item.slug = await uniqueStaffSlug(name.trim(), item.id);
+    }
+    if (role?.trim()) item.role = role.trim();
+    if (email !== undefined) item.email = email;
+    if (phone !== undefined) item.phone = phone;
+    if (image !== undefined) item.image = image;
+    if (isOrganizer !== undefined) item.isOrganizer = !!isOrganizer;
+    if (extra !== undefined) item.extra = extra;
+    if (socialLinks !== undefined) item.socialLinks = socialLinks;
+
+    const payload = serializeStaff(item.get ? item.get({ plain: true }) : item);
+    await item.update(payload);
+    
+    return Response(res, 200, { item: deserializeStaff(item) });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.deleteStaff = async (req, res) => {
+  try {
+    const item = await StaffMember.findByPk(req.params.id);
+    if (!item) return Response(res, 404, { reason: 'Membre du personnel introuvable' });
+    await item.destroy();
     return Response(res, 200, { deleted: true });
   } catch (e) {
     return Response(res, 500, { reason: e.message });
