@@ -1,8 +1,10 @@
 // controllers/contents.controller.js
 const slugify = require('slugify');
 const { Op } = require('sequelize');
-const { Content, User, Faculty, Filiere, SpecialProgram } = require('../models');
+const { Content, User, Faculty, Filiere, SpecialProgram, Newsletter } = require('../models');
 const { Response } = require('../utils/Response');
+const { sendMail, isConfigured } = require('../utils/mailer');
+const { publicationBroadcastTemplate } = require('../utils/emailTemplates');
 
 const authorIncludes = [
   { model: User, as: 'author', attributes: ['id', 'name', 'email', 'role'] },
@@ -135,4 +137,47 @@ exports.remove = async (req, res) => {
     return Response(res, 403, {});
   await item.destroy();
   return Response(res, 200, { deleted: true });
+};
+
+// Diffuse une publication aux abonnés de la newsletter (tous ou sélection).
+exports.broadcast = async (req, res) => {
+  try {
+    const item = await Content.findByPk(req.params.id, { include: authorIncludes });
+    if (!item) return Response(res, 404, {});
+    if (req.user.role !== 'super_admin' && item.authorId !== req.user.id)
+      return Response(res, 403, {});
+
+    const all = req.body.all === undefined ? true : !!req.body.all;
+    const recipientIds = Array.isArray(req.body.recipientIds) ? req.body.recipientIds : [];
+
+    const where = { isActive: true };
+    if (!all) {
+      if (!recipientIds.length) return Response(res, 401, { reason: 'Aucun destinataire sélectionné' });
+      where.id = { [Op.in]: recipientIds };
+    }
+    const subs = await Newsletter.findAll({ where, attributes: ['id', 'email'] });
+    const emails = [...new Set(subs.map((s) => s.email).filter(Boolean))];
+    if (!emails.length) return Response(res, 200, { sent: 0, total: 0, reason: 'Aucun abonné' });
+
+    const frontendUrl = process.env.FRONTEND_URL || 'https://ulpgl.net';
+    const { subject, html, text } = publicationBroadcastTemplate({ content: item, frontendUrl });
+
+    if (!isConfigured()) {
+      return Response(res, 200, { sent: 0, total: emails.length, skipped: true, reason: 'SMTP non configuré (mode skip)' });
+    }
+
+    const chunkSize = 50;
+    let sent = 0;
+    const errors = [];
+    for (let i = 0; i < emails.length; i += chunkSize) {
+      const chunk = emails.slice(i, i + chunkSize);
+      const r = await sendMail({ bcc: chunk, subject, html, text });
+      if (r.sent) sent += chunk.length;
+      else if (r.error) errors.push(r.error);
+    }
+    return Response(res, 200, { sent, total: emails.length, errors: errors.length ? errors : undefined });
+  } catch (e) {
+    console.error(e);
+    return Response(res, 500, { reason: e.message });
+  }
 };
