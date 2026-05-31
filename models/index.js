@@ -1,287 +1,44 @@
-const { DataTypes } = require('sequelize');
+// models/index.js
+// Point d'entrée unique : charge chaque modèle depuis son fichier dédié,
+// câble les associations, puis ré-exporte tout.
 const sequelize = require('../config/database');
 
-const User = sequelize.define('User', {
-  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  name: { type: DataTypes.STRING(120), allowNull: false },
-  email: { type: DataTypes.STRING(160), allowNull: false },        // ← unique retiré ici
-  password: { type: DataTypes.STRING(255), allowNull: false },
-  role: {
-    type: DataTypes.ENUM('super_admin', 'faculty_publisher'),
-    defaultValue: 'faculty_publisher',
-    allowNull: false,
-  },
-  facultyId: { type: DataTypes.INTEGER, allowNull: true },
-  avatar: { type: DataTypes.STRING(255), allowNull: true },
-  isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
-}, {
-  tableName: 'users',
-  timestamps: true,
-  indexes: [
-    { unique: true, fields: ['email'], name: 'users_email_unique' },  // ← ici, avec nom fixe
-  ],
+// ─── Chargement des modèles ────────────────────────────────────────────────────
+const User               = require('./User')(sequelize);
+const Faculty            = require('./Faculty')(sequelize);
+const Filiere            = require('./Filiere')(sequelize);
+const Content            = require('./Content')(sequelize);
+const Newsletter         = require('./Newsletter')(sequelize);
+const ContactMessage     = require('./ContactMessage')(sequelize);
+const PasswordResetToken = require('./PasswordResetToken')(sequelize);
+const Schedule           = require('./Schedule')(sequelize);
+const Center             = require('./Center')(sequelize);
+const Faq                = require('./Faq')(sequelize);
+const StaffMember        = require('./StaffMember')(sequelize);
+const SpecialProgram     = require('./SpecialProgram')(sequelize);
+const LoginHistory       = require('./LoginHistory')(sequelize);
+
+// ─── Associations ──────────────────────────────────────────────────────────────
+const models = {
+  User, Faculty, Filiere, Content, Newsletter,
+  ContactMessage, PasswordResetToken, Schedule,
+  Center, Faq, StaffMember, SpecialProgram, LoginHistory,
+};
+
+Object.values(models).forEach((model) => {
+  if (typeof model.associate === 'function') {
+    model.associate(models);
+  }
 });
 
-const Faculty = sequelize.define('Faculty', {
-  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  name: { type: DataTypes.STRING(200), allowNull: false },
-  nameEn: { type: DataTypes.STRING(200), allowNull: true },
-  slug: { type: DataTypes.STRING(220), allowNull: false },           // ← unique retiré
-  domaine: { type: DataTypes.STRING(200), allowNull: false },
-  domaineEn: { type: DataTypes.STRING(200), allowNull: true },
-  description: { type: DataTypes.TEXT('long'), allowNull: true },
-  descriptionEn: { type: DataTypes.TEXT('long'), allowNull: true },
-  dean: { type: DataTypes.STRING(200), allowNull: true },
-  deanEn: { type: DataTypes.STRING(200), allowNull: true },
-  secretary: { type: DataTypes.STRING(200), allowNull: true },
-  secretaryEn: { type: DataTypes.STRING(200), allowNull: true },
-  coverImage: { type: DataTypes.STRING(500), allowNull: true },
-}, {
-  tableName: 'faculties',
-  timestamps: true,
-  indexes: [
-    { unique: true, fields: ['slug'], name: 'faculties_slug_unique' },
-  ],
-});
+// ─── Helpers JSON (ré-exportés depuis leurs modèles) ──────────────────────────
+const { serializeCenter, deserializeCenter } = require('./Center');
+const { serializeStaff,  deserializeStaff  } = require('./StaffMember');
 
-const Filiere = sequelize.define('Filiere', {
-  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  facultyId: { type: DataTypes.INTEGER, allowNull: false },
-  name: { type: DataTypes.STRING(200), allowNull: false },
-  nameEn: { type: DataTypes.STRING(200), allowNull: true },
-  slug: { type: DataTypes.STRING(220), allowNull: false },
-  description: { type: DataTypes.TEXT, allowNull: true },
-  descriptionEn: { type: DataTypes.TEXT, allowNull: true },
-  duration: { type: DataTypes.STRING(50), allowNull: true },
-  durationEn: { type: DataTypes.STRING(50), allowNull: true },
-  diploma: { type: DataTypes.STRING(120), allowNull: true },
-  diplomaEn: { type: DataTypes.STRING(120), allowNull: true },
-}, { tableName: 'filieres', timestamps: true });
-
-const Content = sequelize.define('Content', {
-  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  type: { type: DataTypes.ENUM('article', 'event', 'activity'), allowNull: false },
-  title: { type: DataTypes.STRING(255), allowNull: false },
-  slug: { type: DataTypes.STRING(280), allowNull: false },
-  excerpt: { type: DataTypes.TEXT, allowNull: true },
-  content: { type: DataTypes.TEXT('long'), allowNull: false },
-  category: { type: DataTypes.STRING(120), allowNull: true },
-  coverImage: { type: DataTypes.STRING(500), allowNull: true },
-  eventDate: { type: DataTypes.DATE, allowNull: true },
-  location: { type: DataTypes.STRING(255), allowNull: true },
-  authorId: { type: DataTypes.INTEGER, allowNull: false },
-  facultyId: { type: DataTypes.INTEGER, allowNull: true },
-  filiereId: { type: DataTypes.INTEGER, allowNull: true },
-  specialProgramId: { type: DataTypes.INTEGER, allowNull: true },
-  status: {
-    type: DataTypes.ENUM('draft', 'pending', 'published', 'rejected'),
-    defaultValue: 'pending',
-    allowNull: false,
-  },
-  rejectionReason: { type: DataTypes.TEXT, allowNull: true },
-  publishedAt: { type: DataTypes.DATE, allowNull: true },
-  views: { type: DataTypes.INTEGER, defaultValue: 0 },
-}, { tableName: 'contents', timestamps: true });
-
-const Newsletter = sequelize.define('Newsletter', {
-  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  email: { type: DataTypes.STRING(160), allowNull: false },          // ← unique retiré
-  isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
-}, {
-  tableName: 'newsletters',
-  timestamps: true,
-  indexes: [
-    { unique: true, fields: ['email'], name: 'newsletters_email_unique' },
-  ],
-});
-
-const ContactMessage = sequelize.define('ContactMessage', {
-  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  name: { type: DataTypes.STRING(160), allowNull: false },
-  email: { type: DataTypes.STRING(160), allowNull: false },
-  subject: { type: DataTypes.STRING(255), allowNull: false },
-  message: { type: DataTypes.TEXT, allowNull: false },
-  isRead: { type: DataTypes.BOOLEAN, defaultValue: false },
-}, { tableName: 'contact_messages', timestamps: true });
-
-const PasswordResetToken = sequelize.define('PasswordResetToken', {
-  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  userId: { type: DataTypes.INTEGER, allowNull: false },
-  token: { type: DataTypes.STRING(120), allowNull: false },          // ← unique retiré
-  expiresAt: { type: DataTypes.DATE, allowNull: false },
-  usedAt: { type: DataTypes.DATE, allowNull: true },
-}, {
-  tableName: 'password_reset_tokens',
-  timestamps: true,
-  indexes: [
-    { unique: true, fields: ['token'], name: 'prt_token_unique' },
-  ],
-});
-
-const Schedule = sequelize.define('Schedule', {
-  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  type: { type: DataTypes.ENUM('cours', 'examen'), allowNull: false },
-  title: { type: DataTypes.STRING(255), allowNull: false },
-  facultyId: { type: DataTypes.INTEGER, allowNull: false },
-  filiereId: { type: DataTypes.INTEGER, allowNull: true },
-  promotion: { type: DataTypes.STRING(40), allowNull: false },
-  academicYear: { type: DataTypes.STRING(20), allowNull: true },
-  semester: { type: DataTypes.STRING(20), allowNull: true },
-  startDate: { type: DataTypes.DATE, allowNull: true },
-  endDate: { type: DataTypes.DATE, allowNull: true },
-  location: { type: DataTypes.STRING(255), allowNull: true },
-  fileUrl: { type: DataTypes.STRING(500), allowNull: true },
-  description: { type: DataTypes.TEXT, allowNull: true },
-  authorId: { type: DataTypes.INTEGER, allowNull: false },
-  status: { type: DataTypes.ENUM('pending', 'published', 'rejected'), defaultValue: 'pending' },
-  publishedAt: { type: DataTypes.DATE, allowNull: true },
-  rejectionReason: { type: DataTypes.TEXT, allowNull: true },
-}, { tableName: 'schedules', timestamps: true });
-
-const Center = sequelize.define('Center', {
-  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  slug: { type: DataTypes.STRING(160), allowNull: false },           // ← unique retiré
-  title: { type: DataTypes.STRING(200), allowNull: false },
-  description: { type: DataTypes.TEXT, allowNull: false },
-  profile: { type: DataTypes.TEXT('long'), allowNull: true },
-  coverImage: { type: DataTypes.STRING(500), allowNull: true },
-  images: { type: DataTypes.TEXT, allowNull: true },
-  direction: { type: DataTypes.TEXT, allowNull: true },
-  domaineInterventions: { type: DataTypes.TEXT, allowNull: true },
-  etudesRealisees: { type: DataTypes.TEXT, allowNull: true },
-  partenaires: { type: DataTypes.TEXT, allowNull: true },
-  contacts: { type: DataTypes.TEXT, allowNull: true },
-  facultyId: { type: DataTypes.INTEGER, allowNull: true },
-  authorId: { type: DataTypes.INTEGER, allowNull: false },
-  status: { type: DataTypes.ENUM('pending', 'published', 'rejected'), defaultValue: 'pending' },
-  publishedAt: { type: DataTypes.DATE, allowNull: true },
-  rejectionReason: { type: DataTypes.TEXT, allowNull: true },
-}, {
-  tableName: 'centers',
-  timestamps: true,
-  indexes: [
-    { unique: true, fields: ['slug'], name: 'centers_slug_unique' },
-  ],
-});
-
-const Faq = sequelize.define('Faq', {
-  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  question: { type: DataTypes.STRING(500), allowNull: false },
-  questionEn: { type: DataTypes.STRING(500), allowNull: true },
-  answer: { type: DataTypes.TEXT, allowNull: false },
-  answerEn: { type: DataTypes.TEXT, allowNull: true },
-  sortOrder: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-  isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
-}, { tableName: 'faqs', timestamps: true });
-
-const StaffMember = sequelize.define('StaffMember', {
-  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  uuid: { type: DataTypes.STRING(80), allowNull: true },
-  slug: { type: DataTypes.STRING(200), allowNull: false },           // ← unique retiré
-  name: { type: DataTypes.STRING(200), allowNull: false },
-  role: { type: DataTypes.STRING(200), allowNull: false },
-  email: { type: DataTypes.TEXT, allowNull: true },
-  phone: { type: DataTypes.TEXT, allowNull: true },
-  image: { type: DataTypes.STRING(500), allowNull: true },
-  isOrganizer: { type: DataTypes.BOOLEAN, defaultValue: false },
-  extra: { type: DataTypes.TEXT, allowNull: true },
-  socialLinks: { type: DataTypes.TEXT, allowNull: true },
-}, {
-  tableName: 'staff_members',
-  timestamps: true,
-  indexes: [
-    { unique: true, fields: ['slug'], name: 'staff_members_slug_unique' },
-  ],
-});
-
-const SpecialProgram = sequelize.define('SpecialProgram', {
-  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  facultyId: { type: DataTypes.INTEGER, allowNull: false },
-  name: { type: DataTypes.STRING(200), allowNull: false },
-  nameEn: { type: DataTypes.STRING(200), allowNull: true },
-  slug: { type: DataTypes.STRING(220), allowNull: false },           // ← unique retiré
-  description: { type: DataTypes.TEXT('long'), allowNull: true },
-  descriptionEn: { type: DataTypes.TEXT('long'), allowNull: true },
-  coverImage: { type: DataTypes.STRING(500), allowNull: true },
-  isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
-}, {
-  tableName: 'special_programs',
-  timestamps: true,
-  indexes: [
-    { unique: true, fields: ['slug'], name: 'special_programs_slug_unique' },
-  ],
-});
-
-// --- Helpers JSON (inchangés) ---
-const JSON_FIELDS = ['images', 'direction', 'domaineInterventions', 'etudesRealisees', 'partenaires', 'contacts'];
-function serializeCenter(values) {
-  const out = { ...values };
-  JSON_FIELDS.forEach((f) => {
-    if (out[f] !== undefined && typeof out[f] !== 'string') out[f] = JSON.stringify(out[f] ?? null);
-  });
-  return out;
-}
-function deserializeCenter(instance) {
-  if (!instance) return instance;
-  const obj = instance.toJSON ? instance.toJSON() : { ...instance };
-  JSON_FIELDS.forEach((f) => {
-    if (typeof obj[f] === 'string') {
-      try { obj[f] = JSON.parse(obj[f]); } catch { obj[f] = null; }
-    }
-  });
-  return obj;
-}
-
-const STAFF_JSON_FIELDS = ['email', 'phone', 'extra', 'socialLinks'];
-function serializeStaff(values) {
-  const out = { ...values };
-  STAFF_JSON_FIELDS.forEach((f) => {
-    if (out[f] !== undefined && typeof out[f] !== 'string') out[f] = JSON.stringify(out[f] ?? null);
-  });
-  return out;
-}
-function deserializeStaff(instance) {
-  if (!instance) return instance;
-  const obj = instance.toJSON ? instance.toJSON() : { ...instance };
-  STAFF_JSON_FIELDS.forEach((f) => {
-    if (typeof obj[f] === 'string') {
-      try { obj[f] = JSON.parse(obj[f]); } catch { obj[f] = null; }
-    }
-  });
-  return obj;
-}
-
-// --- Associations (inchangées) ---
-Faculty.hasMany(Filiere, { foreignKey: 'facultyId', as: 'filieres', onDelete: 'CASCADE' });
-Filiere.belongsTo(Faculty, { foreignKey: 'facultyId', as: 'faculty' });
-
-User.belongsTo(Faculty, { foreignKey: 'facultyId', as: 'faculty' });
-Faculty.hasMany(User, { foreignKey: 'facultyId', as: 'publishers' });
-
-Content.belongsTo(User, { foreignKey: 'authorId', as: 'author' });
-Content.belongsTo(Faculty, { foreignKey: 'facultyId', as: 'faculty' });
-Content.belongsTo(Filiere, { foreignKey: 'filiereId', as: 'filiere' });
-User.hasMany(Content, { foreignKey: 'authorId', as: 'contents' });
-Filiere.hasMany(Content, { foreignKey: 'filiereId', as: 'contents' });
-
-Faculty.hasMany(SpecialProgram, { foreignKey: 'facultyId', as: 'specialPrograms', onDelete: 'CASCADE' });
-SpecialProgram.belongsTo(Faculty, { foreignKey: 'facultyId', as: 'faculty' });
-Content.belongsTo(SpecialProgram, { foreignKey: 'specialProgramId', as: 'specialProgram' });
-SpecialProgram.hasMany(Content, { foreignKey: 'specialProgramId', as: 'contents' });
-
-Schedule.belongsTo(Faculty, { foreignKey: 'facultyId', as: 'faculty' });
-Schedule.belongsTo(Filiere, { foreignKey: 'filiereId', as: 'filiere' });
-Schedule.belongsTo(User, { foreignKey: 'authorId', as: 'author' });
-Faculty.hasMany(Schedule, { foreignKey: 'facultyId', as: 'schedules' });
-
-PasswordResetToken.belongsTo(User, { foreignKey: 'userId', as: 'user' });
-
-Center.belongsTo(Faculty, { foreignKey: 'facultyId', as: 'faculty' });
-Center.belongsTo(User, { foreignKey: 'authorId', as: 'author' });
-
+// ─── Exports ───────────────────────────────────────────────────────────────────
 module.exports = {
-  sequelize, User, Faculty, Filiere, Content, Newsletter,
-  ContactMessage, PasswordResetToken, Schedule, Center,
-  Faq, StaffMember, SpecialProgram,
-  serializeCenter, deserializeCenter, serializeStaff, deserializeStaff,
+  sequelize,
+  ...models,
+  serializeCenter, deserializeCenter,
+  serializeStaff,  deserializeStaff,
 };

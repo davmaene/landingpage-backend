@@ -22,6 +22,7 @@ const KEPT_INDEXES = {
   centers:               new Set(['centers_slug_unique']),
   staff_members:         new Set(['staff_members_slug_unique']),
   special_programs:      new Set(['special_programs_slug_unique']),
+  login_history:         new Set([]), // pas d'index unique custom, PRIMARY seulement
 };
 
 /**

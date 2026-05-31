@@ -6,13 +6,14 @@ const { seedDatabase } = require('./utils/seed');
 const { cleanupIndexes } = require('./utils/cleanupIndexes');
 const { Response } = require('./utils/Response');
 
-const authRoutes = require('./routes/auth');
-const contentRoutes = require('./routes/contents');
-const miscRoutes = require('./routes/misc');
-const cloudinaryRoutes = require('./routes/cloudinary');
-const scheduleRoutes = require('./routes/schedules');
-const centerRoutes = require('./routes/centers');
-const faqRoutes = require('./routes/faqs');
+const authRoutes          = require('./routes/auth');
+const contentRoutes       = require('./routes/contents');
+const miscRoutes          = require('./routes/misc');
+const cloudinaryRoutes    = require('./routes/cloudinary');
+const scheduleRoutes      = require('./routes/schedules');
+const centerRoutes        = require('./routes/centers');
+const faqRoutes           = require('./routes/faqs');
+const loginHistoryRoutes  = require('./routes/loginHistory');
 
 const app = express();
 
@@ -41,13 +42,14 @@ app.get('/api', (req, res) => Response(res, 200, { service: 'ulpgl-api', version
 app.get('/api/health', (req, res) => Response(res, 200, { healthy: true }));
 
 // Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/contents', contentRoutes);
-app.use('/api/cloudinary', cloudinaryRoutes);
-app.use('/api/schedules', scheduleRoutes);
-app.use('/api/centers', centerRoutes);
-app.use('/api/faqs', faqRoutes);
-app.use('/api', miscRoutes);
+app.use('/api/auth',          authRoutes);
+app.use('/api/auth/history',  loginHistoryRoutes);
+app.use('/api/contents',      contentRoutes);
+app.use('/api/cloudinary',    cloudinaryRoutes);
+app.use('/api/schedules',     scheduleRoutes);
+app.use('/api/centers',       centerRoutes);
+app.use('/api/faqs',          faqRoutes);
+app.use('/api',               miscRoutes);
 
 // 404
 app.use('/api', (req, res) => Response(res, 404, { path: req.originalUrl }));
@@ -67,6 +69,20 @@ async function start() {
     await cleanupIndexes(sequelize);
     await sequelize.sync({ alter: true });
     // await seedDatabase();
+
+    // ── Purge automatique de l'historique toutes les heures (rétention 24h) ──
+    const { LoginHistory } = require('./models');
+    const { Op } = require('sequelize');
+    const RETENTION_MS = 24 * 60 * 60 * 1000;
+    setInterval(async () => {
+      try {
+        const cutoff  = new Date(Date.now() - RETENTION_MS);
+        const deleted = await LoginHistory.destroy({ where: { createdAt: { [Op.lt]: cutoff } } });
+        if (deleted > 0) console.log(`[ PURGE ] ${deleted} entrée(s) login_history supprimée(s)`);
+      } catch (err) {
+        console.warn('[ PURGE ] Erreur purge login_history:', err.message);
+      }
+    }, 60 * 60 * 1000); // toutes les heures
 
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`Server running on port :`, PORT);

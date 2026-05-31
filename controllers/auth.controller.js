@@ -2,23 +2,56 @@
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
-const { User, Faculty, PasswordResetToken } = require('../models');
+const { User, Faculty, PasswordResetToken, LoginHistory } = require('../models');
 const { sign } = require('../middleware/auth.middleware');
 const { sendMail } = require('../utils/mailer');
 const { Response } = require('../utils/Response');
 
+/** Extrait l'IP réelle même derrière un reverse-proxy */
+const getClientIp = (req) => {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) return forwarded.split(',')[0].trim();
+  return req.ip || req.connection?.remoteAddress || null;
+};
+
+/** Enregistre silencieusement une tentative — ne bloque jamais la réponse */
+const recordLogin = (data) => {
+  LoginHistory.create(data).catch((err) =>
+    console.warn('[LoginHistory] write error:', err.message)
+  );
+};
+
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    const ip        = getClientIp(req);
+    const userAgent = req.headers['user-agent'] || null;
+    const emailNorm = String(email || '').toLowerCase().trim();
+
     if (!email || !password) return Response(res, 401, { reason: 'Email et mot de passe requis' });
+
     const user = await User.findOne({
-      where: { email: String(email).toLowerCase().trim() },
+      where: { email: emailNorm },
       include: [{ model: Faculty, as: 'faculty' }],
     });
-    if (!user) return Response(res, 403, {});
-    if (!user.isActive) return Response(res, 244, {});
+
+    if (!user) {
+      recordLogin({ email: emailNorm, status: 'failed', failReason: 'unknown_email', ip, userAgent });
+      return Response(res, 403, {});
+    }
+
+    if (!user.isActive) {
+      recordLogin({ userId: user.id, email: emailNorm, status: 'disabled', failReason: 'account_disabled', ip, userAgent });
+      return Response(res, 244, {});
+    }
+
     const valid = await bcrypt.compare(password, user.password);
-    if (!valid) return Response(res, 403, {});
+    if (!valid) {
+      recordLogin({ userId: user.id, email: emailNorm, status: 'failed', failReason: 'bad_credentials', ip, userAgent });
+      return Response(res, 403, {});
+    }
+
+    recordLogin({ userId: user.id, email: emailNorm, status: 'success', ip, userAgent });
     const token = sign(user);
     const safeUser = user.toJSON();
     delete safeUser.password;
