@@ -33,6 +33,13 @@ router.get('/users', requireAuth, requireRole('super_admin'), c.listUsers);
 router.put('/users/:id', requireAuth, requireRole('super_admin'), c.updateUser);
 router.delete('/users/:id', requireAuth, requireRole('super_admin'), c.deleteUser);
 
+// Special Programs
+router.get('/special-programs', c.listSpecialPrograms);
+router.get('/special-programs/:slug', c.getSpecialProgram);
+router.post('/special-programs', requireAuth, requireRole('super_admin'), c.createSpecialProgram);
+router.put('/special-programs/:id', requireAuth, requireRole('super_admin'), c.updateSpecialProgram);
+router.delete('/special-programs/:id', requireAuth, requireRole('super_admin'), c.deleteSpecialProgram);
+
 // Staff
 router.get('/staff', c.listStaff);
 router.get('/staff/:slug', c.getStaff);

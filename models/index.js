@@ -60,6 +60,7 @@ const Content = sequelize.define('Content', {
   authorId: { type: DataTypes.INTEGER, allowNull: false },
   facultyId: { type: DataTypes.INTEGER, allowNull: true },
   filiereId: { type: DataTypes.INTEGER, allowNull: true },
+  specialProgramId: { type: DataTypes.INTEGER, allowNull: true },
   status: {
     type: DataTypes.ENUM('draft', 'pending', 'published', 'rejected'),
     defaultValue: 'pending',
@@ -160,6 +161,18 @@ const StaffMember = sequelize.define('StaffMember', {
   socialLinks: { type: DataTypes.TEXT, allowNull: true }, // JSON array string
 }, { tableName: 'staff_members', timestamps: true });
 
+const SpecialProgram = sequelize.define('SpecialProgram', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  facultyId: { type: DataTypes.INTEGER, allowNull: false },
+  name: { type: DataTypes.STRING(200), allowNull: false },
+  nameEn: { type: DataTypes.STRING(200), allowNull: true },
+  slug: { type: DataTypes.STRING(220), unique: true, allowNull: false },
+  description: { type: DataTypes.TEXT('long'), allowNull: true },
+  descriptionEn: { type: DataTypes.TEXT('long'), allowNull: true },
+  coverImage: { type: DataTypes.STRING(500), allowNull: true },
+  isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
+}, { tableName: 'special_programs', timestamps: true });
+
 // Helpers to (de)serialize JSON fields
 const JSON_FIELDS = ['images', 'direction', 'domaineInterventions', 'etudesRealisees', 'partenaires', 'contacts'];
 function serializeCenter(values) {
@@ -212,6 +225,11 @@ Content.belongsTo(Filiere, { foreignKey: 'filiereId', as: 'filiere' });
 User.hasMany(Content, { foreignKey: 'authorId', as: 'contents' });
 Filiere.hasMany(Content, { foreignKey: 'filiereId', as: 'contents' });
 
+Faculty.hasMany(SpecialProgram, { foreignKey: 'facultyId', as: 'specialPrograms', onDelete: 'CASCADE' });
+SpecialProgram.belongsTo(Faculty, { foreignKey: 'facultyId', as: 'faculty' });
+Content.belongsTo(SpecialProgram, { foreignKey: 'specialProgramId', as: 'specialProgram' });
+SpecialProgram.hasMany(Content, { foreignKey: 'specialProgramId', as: 'contents' });
+
 Schedule.belongsTo(Faculty, { foreignKey: 'facultyId', as: 'faculty' });
 Schedule.belongsTo(Filiere, { foreignKey: 'filiereId', as: 'filiere' });
 Schedule.belongsTo(User, { foreignKey: 'authorId', as: 'author' });
@@ -222,4 +240,4 @@ PasswordResetToken.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 Center.belongsTo(Faculty, { foreignKey: 'facultyId', as: 'faculty' });
 Center.belongsTo(User, { foreignKey: 'authorId', as: 'author' });
 
-module.exports = { sequelize, User, Faculty, Filiere, Content, Newsletter, ContactMessage, PasswordResetToken, Schedule, Center, Faq, StaffMember, serializeCenter, deserializeCenter, serializeStaff, deserializeStaff };
+module.exports = { sequelize, User, Faculty, Filiere, Content, Newsletter, ContactMessage, PasswordResetToken, Schedule, Center, Faq, StaffMember, SpecialProgram, serializeCenter, deserializeCenter, serializeStaff, deserializeStaff };
