@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const slugify = require('slugify');
-const { User, Faculty, Filiere, Content, Center, Faq, StaffMember, serializeCenter, serializeStaff } = require('../models');
+const { User, Faculty, Filiere, Content, Center, Faq, StaffMember, SpecialProgram, serializeCenter, serializeStaff } = require('../models');
 
 const FACULTIES = [
   {
@@ -535,6 +535,31 @@ async function seedDatabase() {
 
     for (const s of seedStaff) {
       await StaffMember.create(serializeStaff(s));
+    }
+  }
+
+  // Seeding Special Programs
+  const specialProgramCount = await SpecialProgram.count();
+  if (specialProgramCount === 0 && firstFaculty) {
+    console.log('Seeding special programs...');
+    const seedPrograms = [
+      {
+        name: "Programme de formation continue",
+        slug: slugify("Programme de formation continue", { lower: true, strict: true }),
+        description: "Formations courtes, ateliers et certifications ouvertes aux professionnels.",
+        facultyId: firstFaculty.id,
+        isActive: true,
+      },
+      {
+        name: "Semaine scientifique",
+        slug: slugify("Semaine scientifique", { lower: true, strict: true }),
+        description: "Cycle d'événements, conférences et séminaires de la faculté.",
+        facultyId: firstFaculty.id,
+        isActive: true,
+      },
+    ];
+    for (const p of seedPrograms) {
+      await SpecialProgram.create(p);
     }
   }
 

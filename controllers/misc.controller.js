@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
 const slugify = require('slugify');
-const { Faculty, Filiere, Content, Newsletter, ContactMessage, User, Schedule, Faq, Center, StaffMember, serializeStaff, deserializeStaff } = require('../models');
+const { Faculty, Filiere, Content, Newsletter, ContactMessage, User, Schedule, Faq, Center, StaffMember, SpecialProgram, serializeStaff, deserializeStaff } = require('../models');
 const { sendMail } = require('../utils/mailer');
 const { Response } = require('../utils/Response');
 
@@ -58,7 +58,25 @@ exports.listFaculties = async (req, res) => {
 };
 
 exports.getFaculty = async (req, res) => {
-  const item = await Faculty.findOne({ where: { slug: req.params.slug }, include: [{ model: Filiere, as: 'filieres' }] });
+  const item = await Faculty.findOne({
+    where: { slug: req.params.slug },
+    include: [
+      { model: Filiere, as: 'filieres' },
+      {
+        model: SpecialProgram,
+        as: 'specialPrograms',
+        where: { isActive: true },
+        required: false,
+        include: [{
+          model: Content,
+          as: 'contents',
+          where: { status: 'published' },
+          required: false,
+        }],
+      },
+    ],
+    order: [[{ model: SpecialProgram, as: 'specialPrograms' }, 'name', 'ASC']],
+  });
   if (!item) return Response(res, 404, {});
   return Response(res, 200, { item });
 };
@@ -337,12 +355,13 @@ exports.stats = async (req, res) => {
 
   if (!isAdmin) return Response(res, 200, base);
 
-  const [faculties, filieres, centers, faqs, personnel, domaines, categories] = await Promise.all([
+  const [faculties, filieres, centers, faqs, personnel, specialPrograms, domaines, categories] = await Promise.all([
     Faculty.count(),
     Filiere.count(),
     Center.count(),
     Faq.count(),
     StaffMember.count(),
+    SpecialProgram.count(),
     Faculty.count({ distinct: true, col: 'domaine' }),
     Content.count({
       distinct: true,
@@ -358,6 +377,7 @@ exports.stats = async (req, res) => {
     centers,
     faqs,
     personnel,
+    specialPrograms,
     domaines,
     categories,
     keyFigures: 0,
@@ -506,6 +526,115 @@ exports.deleteStaff = async (req, res) => {
   try {
     const item = await StaffMember.findByPk(req.params.id);
     if (!item) return Response(res, 404, { reason: 'Membre du personnel introuvable' });
+    await item.destroy();
+    return Response(res, 200, { deleted: true });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+// ---------------- Special Programs ----------------
+const specialProgramIncludes = [
+  { model: Faculty, as: 'faculty', attributes: ['id', 'name', 'slug'] },
+];
+
+const uniqueSpecialProgramSlug = async (name, excludeId) => {
+  let slug = slugify(name, { lower: true, strict: true });
+  const where = { slug };
+  if (excludeId) where.id = { [Op.ne]: excludeId };
+  const existing = await SpecialProgram.findOne({ where });
+  if (existing) slug = `${slug}-${Date.now()}`;
+  return slug;
+};
+
+exports.listSpecialPrograms = async (req, res) => {
+  try {
+    const where = {};
+    if (req.query.facultyId) where.facultyId = req.query.facultyId;
+    const items = await SpecialProgram.findAll({
+      where,
+      include: specialProgramIncludes,
+      order: [['name', 'ASC']],
+    });
+    return Response(res, 200, { length: items.length, rows: items });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.getSpecialProgram = async (req, res) => {
+  try {
+    const item = await SpecialProgram.findOne({
+      where: { slug: req.params.slug },
+      include: [
+        { model: Faculty, as: 'faculty', attributes: ['id', 'name', 'slug'] },
+        { model: Content, as: 'contents', where: { status: 'published' }, required: false },
+      ],
+    });
+    if (!item) return Response(res, 404, { reason: 'Programme introuvable' });
+    return Response(res, 200, { item });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.createSpecialProgram = async (req, res) => {
+  try {
+    const { name, nameEn, description, descriptionEn, coverImage, facultyId, isActive } = req.body;
+    if (!name?.trim() || !facultyId)
+      return Response(res, 401, { reason: 'Nom et faculté requis' });
+    const faculty = await Faculty.findByPk(facultyId);
+    if (!faculty) return Response(res, 404, { reason: 'Faculté introuvable' });
+    const slug = await uniqueSpecialProgramSlug(name.trim());
+    const item = await SpecialProgram.create({
+      name: name.trim(),
+      nameEn: nameEn?.trim() || null,
+      slug,
+      description: description || null,
+      descriptionEn: descriptionEn || null,
+      coverImage: coverImage || null,
+      facultyId,
+      isActive: isActive === undefined ? true : !!isActive,
+    });
+    const created = await SpecialProgram.findByPk(item.id, { include: specialProgramIncludes });
+    return Response(res, 201, { item: created });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.updateSpecialProgram = async (req, res) => {
+  try {
+    const item = await SpecialProgram.findByPk(req.params.id);
+    if (!item) return Response(res, 404, { reason: 'Programme introuvable' });
+    const { name, nameEn, description, descriptionEn, coverImage, facultyId, isActive } = req.body;
+    if (name?.trim()) {
+      item.name = name.trim();
+      item.slug = await uniqueSpecialProgramSlug(name.trim(), item.id);
+    }
+    if (nameEn !== undefined) item.nameEn = nameEn?.trim() || null;
+    if (description !== undefined) item.description = description || null;
+    if (descriptionEn !== undefined) item.descriptionEn = descriptionEn || null;
+    if (coverImage !== undefined) item.coverImage = coverImage || null;
+    if (facultyId !== undefined && facultyId) {
+      const faculty = await Faculty.findByPk(facultyId);
+      if (!faculty) return Response(res, 404, { reason: 'Faculté introuvable' });
+      item.facultyId = facultyId;
+    }
+    if (isActive !== undefined) item.isActive = !!isActive;
+    await item.save();
+    const updated = await SpecialProgram.findByPk(item.id, { include: specialProgramIncludes });
+    return Response(res, 200, { item: updated });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.deleteSpecialProgram = async (req, res) => {
+  try {
+    const item = await SpecialProgram.findByPk(req.params.id);
+    if (!item) return Response(res, 404, { reason: 'Programme introuvable' });
+    await Content.update({ specialProgramId: null }, { where: { specialProgramId: item.id } });
     await item.destroy();
     return Response(res, 200, { deleted: true });
   } catch (e) {

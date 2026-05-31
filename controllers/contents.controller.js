@@ -1,22 +1,24 @@
 // controllers/contents.controller.js
 const slugify = require('slugify');
 const { Op } = require('sequelize');
-const { Content, User, Faculty, Filiere } = require('../models');
+const { Content, User, Faculty, Filiere, SpecialProgram } = require('../models');
 const { Response } = require('../utils/Response');
 
 const authorIncludes = [
   { model: User, as: 'author', attributes: ['id', 'name', 'email', 'role'] },
   { model: Faculty, as: 'faculty', attributes: ['id', 'name', 'slug'] },
   { model: Filiere, as: 'filiere', attributes: ['id', 'name', 'slug'] },
+  { model: SpecialProgram, as: 'specialProgram', attributes: ['id', 'name', 'slug'] },
 ];
 
 exports.list = async (req, res) => {
   try {
-    const { type, limit = 50, status = 'published', facultyId, filiereId } = req.query;
+    const { type, limit = 50, status = 'published', facultyId, filiereId, specialProgramId } = req.query;
     const where = { status };
     if (type) where.type = type;
     if (facultyId) where.facultyId = facultyId;
     if (filiereId) where.filiereId = filiereId;
+    if (specialProgramId) where.specialProgramId = specialProgramId;
     const items = await Content.findAll({
       where,
       include: authorIncludes,
@@ -55,7 +57,7 @@ exports.adminList = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
-    const { type, title, excerpt, content, category, coverImage, eventDate, location, filiereId } = req.body;
+    const { type, title, excerpt, content, category, coverImage, eventDate, location, filiereId, specialProgramId } = req.body;
     if (!type || !title || !content) return Response(res, 401, { reason: 'Champs requis manquants' });
     if (!['article', 'event', 'activity'].includes(type))
       return Response(res, 405, { reason: 'Type invalide' });
@@ -72,7 +74,7 @@ exports.create = async (req, res) => {
     const item = await Content.create({
       type, title, slug, excerpt, content, category, coverImage,
       eventDate: eventDate || null, location,
-      authorId: req.user.id, facultyId, filiereId: filiereId || null, status, publishedAt,
+      authorId: req.user.id, facultyId, filiereId: filiereId || null, specialProgramId: specialProgramId || null, status, publishedAt,
     });
     return Response(res, 201, { item });
   } catch (e) {
@@ -86,7 +88,7 @@ exports.update = async (req, res) => {
   if (!item) return Response(res, 404, {});
   if (req.user.role !== 'super_admin' && item.authorId !== req.user.id)
     return Response(res, 403, {});
-  const { title, excerpt, content, category, coverImage, eventDate, location, filiereId } = req.body;
+  const { title, excerpt, content, category, coverImage, eventDate, location, filiereId, specialProgramId } = req.body;
   if (title && title !== item.title) {
     item.title = title;
     item.slug = slugify(title, { lower: true, strict: true }) + '-' + item.id;
@@ -98,6 +100,7 @@ exports.update = async (req, res) => {
   if (eventDate !== undefined) item.eventDate = eventDate;
   if (location !== undefined) item.location = location;
   if (filiereId !== undefined) item.filiereId = filiereId || null;
+  if (specialProgramId !== undefined) item.specialProgramId = specialProgramId || null;
   if (req.user.role === 'faculty_publisher') {
     item.status = 'pending';
     item.publishedAt = null;
