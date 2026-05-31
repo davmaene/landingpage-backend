@@ -2,7 +2,8 @@ const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
 const slugify = require('slugify');
 const { Faculty, Filiere, Content, Newsletter, ContactMessage, User, Schedule, Faq, Center, StaffMember, SpecialProgram, serializeStaff, deserializeStaff } = require('../models');
-const { sendMail } = require('../utils/mailer');
+const { sendMail, isConfigured } = require('../utils/mailer');
+const { publicationBroadcastTemplate } = require('../utils/emailTemplates');
 const { Response } = require('../utils/Response');
 
 const staffRefAttributes = ['id', 'name', 'role', 'image', 'slug'];
@@ -315,6 +316,56 @@ exports.subscribe = async (req, res) => {
 exports.listNewsletter = async (req, res) => {
   const items = await Newsletter.findAll({ order: [['createdAt', 'DESC']] });
   return Response(res, 200, { length: items.length, rows: items });
+};
+
+// Diffuse une publication aux abonnés (endpoint appelé par le frontend).
+exports.broadcastNewsletter = async (req, res) => {
+  try {
+    const { contentId, recipientIds, mode } = req.body;
+    if (!contentId) return Response(res, 400, { reason: 'contentId requis' });
+
+    const authorIncludes = [
+      { model: User, as: 'author', attributes: ['id', 'name', 'email', 'role'] },
+      { model: Faculty, as: 'faculty', attributes: ['id', 'name', 'slug'] },
+    ];
+    const item = await Content.findByPk(contentId, { include: authorIncludes });
+    if (!item) return Response(res, 404, { reason: 'Contenu introuvable' });
+
+    const all = mode === 'all';
+    const ids = Array.isArray(recipientIds) ? recipientIds : [];
+
+    const where = { isActive: true };
+    if (!all) {
+      if (!ids.length) return Response(res, 400, { reason: 'Aucun destinataire sélectionné' });
+      where.id = { [Op.in]: ids };
+    }
+
+    const subs = await Newsletter.findAll({ where, attributes: ['id', 'email'] });
+    const emails = [...new Set(subs.map((s) => s.email).filter(Boolean))];
+    if (!emails.length) return Response(res, 200, { sent: 0, total: 0, reason: 'Aucun abonné' });
+
+    const frontendUrl = process.env.FRONTEND_URL || 'https://ulpgl.net';
+    const { subject, html, text } = publicationBroadcastTemplate({ content: item, frontendUrl });
+
+    if (!isConfigured()) {
+      return Response(res, 200, { sent: 0, total: emails.length, skipped: true, reason: 'SMTP non configuré (mode skip)' });
+    }
+
+    const chunkSize = 50;
+    let sent = 0;
+    const errors = [];
+    for (let i = 0; i < emails.length; i += chunkSize) {
+      const chunk = emails.slice(i, i + chunkSize);
+      const r = await sendMail({ bcc: chunk, subject, html, text });
+      if (r.sent) sent += chunk.length;
+      else if (r.error) errors.push(r.error);
+    }
+
+    return Response(res, 200, { sent, total: emails.length, errors: errors.length ? errors : undefined });
+  } catch (e) {
+    console.error('[Broadcast]', e);
+    return Response(res, 500, { reason: e.message });
+  }
 };
 
 // ---------------- Contact ----------------

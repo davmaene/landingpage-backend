@@ -17,6 +17,7 @@ router.get('/faculties/:slug/filieres/:filiereSlug', c.getFiliere);
 router.get('/search', c.search);
 
 // Newsletter
+router.post('/newsletter/broadcast', requireAuth, requireRole('super_admin'), c.broadcastNewsletter);
 router.post('/newsletter', c.subscribe);
 router.get('/newsletter', requireAuth, requireRole('super_admin'), c.listNewsletter);
 
