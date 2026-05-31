@@ -20,16 +20,17 @@ if (isConfigured()) {
   });
 }
 
-async function sendMail({ to, subject, html, text }) {
+async function sendMail({ to, bcc, subject, html, text }) {
   if (!isConfigured()) {
-    console.log('[Gmail SKIP] Not configured. Would send to:', to, 'subject:', subject);
+    console.log('[Gmail SKIP] Not configured. Would send to:', to || bcc, 'subject:', subject);
     return { skipped: true };
   }
 
   try {
     const msg = {
       from: process.env.SENDER_EMAIL,
-      to,
+      to: to || process.env.SENDER_EMAIL,
+      ...(bcc ? { bcc } : {}),
       subject,
       text: text || subject,
       html: html || `<p>${subject}</p>`,

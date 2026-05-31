@@ -5,7 +5,19 @@ const { Faculty, Filiere, Content, Newsletter, ContactMessage, User, Schedule, F
 const { sendMail } = require('../utils/mailer');
 const { Response } = require('../utils/Response');
 
-const facultyIncludes = [{ model: Filiere, as: 'filieres' }];
+const staffRefAttributes = ['id', 'name', 'role', 'image', 'slug'];
+const facultyStaffIncludes = [
+  { model: StaffMember, as: 'deanStaff', attributes: staffRefAttributes },
+  { model: StaffMember, as: 'secretaryStaff', attributes: staffRefAttributes },
+];
+const facultyIncludes = [{ model: Filiere, as: 'filieres' }, ...facultyStaffIncludes];
+
+// Résout le nom d'un membre du staff à partir de son id (pour l'affichage public rétro-compatible)
+const staffNameById = async (staffId) => {
+  if (!staffId) return null;
+  const member = await StaffMember.findByPk(staffId, { attributes: ['name'] });
+  return member ? member.name : null;
+};
 
 const uniqueFacultySlug = async (name, excludeId) => {
   let slug = slugify(name, { lower: true, strict: true });
@@ -53,7 +65,7 @@ const syncFilieres = async (facultyId, filieres = []) => {
 
 // ---------------- Faculties ----------------
 exports.listFaculties = async (req, res) => {
-  const items = await Faculty.findAll({ include: [{ model: Filiere, as: 'filieres' }], order: [['name', 'ASC']] });
+  const items = await Faculty.findAll({ include: facultyIncludes, order: [['name', 'ASC']] });
   return Response(res, 200, { length: items.length, rows: items });
 };
 
@@ -62,6 +74,7 @@ exports.getFaculty = async (req, res) => {
     where: { slug: req.params.slug },
     include: [
       { model: Filiere, as: 'filieres' },
+      ...facultyStaffIncludes,
       {
         model: SpecialProgram,
         as: 'specialPrograms',
@@ -93,11 +106,14 @@ exports.createFaculty = async (req, res) => {
   try {
     const {
       name, nameEn, domaine, domaineEn, description, descriptionEn,
-      dean, deanEn, secretary, secretaryEn, coverImage, filieres,
+      dean, deanEn, secretary, secretaryEn, deanStaffId, secretaryStaffId,
+      coverImage, filieres,
     } = req.body;
     if (!name?.trim() || !domaine?.trim())
       return Response(res, 401, { reason: 'Nom et domaine requis' });
     const slug = await uniqueFacultySlug(name.trim());
+    const deanFromStaff = await staffNameById(deanStaffId);
+    const secretaryFromStaff = await staffNameById(secretaryStaffId);
     const faculty = await Faculty.create({
       name: name.trim(),
       nameEn: nameEn?.trim() || null,
@@ -106,10 +122,12 @@ exports.createFaculty = async (req, res) => {
       domaineEn: domaineEn?.trim() || null,
       description: description || null,
       descriptionEn: descriptionEn || null,
-      dean: dean || null,
+      dean: deanFromStaff || dean || null,
       deanEn: deanEn || null,
-      secretary: secretary || null,
+      secretary: secretaryFromStaff || secretary || null,
       secretaryEn: secretaryEn || null,
+      deanStaffId: deanStaffId || null,
+      secretaryStaffId: secretaryStaffId || null,
       coverImage: coverImage || null,
     });
     if (Array.isArray(filieres)) await syncFilieres(faculty.id, filieres);
@@ -126,7 +144,8 @@ exports.updateFaculty = async (req, res) => {
     if (!faculty) return Response(res, 404, { reason: 'Faculté introuvable' });
     const {
       name, nameEn, domaine, domaineEn, description, descriptionEn,
-      dean, deanEn, secretary, secretaryEn, coverImage, filieres,
+      dean, deanEn, secretary, secretaryEn, deanStaffId, secretaryStaffId,
+      coverImage, filieres,
     } = req.body;
     if (name?.trim()) {
       faculty.name = name.trim();
@@ -137,9 +156,19 @@ exports.updateFaculty = async (req, res) => {
     if (domaineEn !== undefined) faculty.domaineEn = domaineEn?.trim() || null;
     if (description !== undefined) faculty.description = description || null;
     if (descriptionEn !== undefined) faculty.descriptionEn = descriptionEn || null;
-    if (dean !== undefined) faculty.dean = dean || null;
+    if (deanStaffId !== undefined) {
+      faculty.deanStaffId = deanStaffId || null;
+      const deanFromStaff = await staffNameById(deanStaffId);
+      if (deanFromStaff) faculty.dean = deanFromStaff;
+      else if (dean !== undefined) faculty.dean = dean || null;
+    } else if (dean !== undefined) faculty.dean = dean || null;
     if (deanEn !== undefined) faculty.deanEn = deanEn || null;
-    if (secretary !== undefined) faculty.secretary = secretary || null;
+    if (secretaryStaffId !== undefined) {
+      faculty.secretaryStaffId = secretaryStaffId || null;
+      const secretaryFromStaff = await staffNameById(secretaryStaffId);
+      if (secretaryFromStaff) faculty.secretary = secretaryFromStaff;
+      else if (secretary !== undefined) faculty.secretary = secretary || null;
+    } else if (secretary !== undefined) faculty.secretary = secretary || null;
     if (secretaryEn !== undefined) faculty.secretaryEn = secretaryEn || null;
     if (coverImage !== undefined) faculty.coverImage = coverImage || null;
     await faculty.save();

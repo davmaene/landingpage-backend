@@ -15,6 +15,8 @@ module.exports = (sequelize) => {
     deanEn:        { type: DataTypes.STRING(200), allowNull: true },
     secretary:     { type: DataTypes.STRING(200), allowNull: true },
     secretaryEn:   { type: DataTypes.STRING(200), allowNull: true },
+    deanStaffId:      { type: DataTypes.INTEGER, allowNull: true },
+    secretaryStaffId: { type: DataTypes.INTEGER, allowNull: true },
     coverImage:    { type: DataTypes.STRING(500), allowNull: true },
   }, {
     tableName: 'faculties',
@@ -29,6 +31,8 @@ module.exports = (sequelize) => {
     Faculty.hasMany(models.User,           { foreignKey: 'facultyId', as: 'publishers' });
     Faculty.hasMany(models.SpecialProgram, { foreignKey: 'facultyId', as: 'specialPrograms', onDelete: 'CASCADE' });
     Faculty.hasMany(models.Schedule,       { foreignKey: 'facultyId', as: 'schedules' });
+    Faculty.belongsTo(models.StaffMember,  { foreignKey: 'deanStaffId',      as: 'deanStaff' });
+    Faculty.belongsTo(models.StaffMember,  { foreignKey: 'secretaryStaffId', as: 'secretaryStaff' });
   };
 
   return Faculty;
