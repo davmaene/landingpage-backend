@@ -28,7 +28,7 @@ async function sendMail({ to, bcc, subject, html, text }) {
 
   try {
     const msg = {
-      from: process.env.SENDER_EMAIL,
+      from: `"${process.env.APPNAME} | NEWS" <${process.env.SENDER_EMAIL}>`, //process.env.SENDER_EMAIL,
       to: to || process.env.SENDER_EMAIL,
       ...(bcc ? { bcc } : {}),
       subject,
@@ -37,6 +37,7 @@ async function sendMail({ to, bcc, subject, html, text }) {
     };
 
     const info = await transporter.sendMail(msg);
+    console.log("[ EMAIL ] sent to ", to, "[ STATUS ]", info.messageId)
     return { sent: true, messageId: info.messageId };
   } catch (err) {
     console.error('[Gmail ERROR]', err.message);

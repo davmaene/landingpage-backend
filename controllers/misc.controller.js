@@ -360,7 +360,7 @@ exports.broadcastNewsletter = async (req, res) => {
       if (r.sent) sent += chunk.length;
       else if (r.error) errors.push(r.error);
     }
-
+    console.table(emails)
     return Response(res, 200, { sent, total: emails.length, errors: errors.length ? errors : undefined });
   } catch (e) {
     console.error('[Broadcast]', e);
@@ -580,7 +580,7 @@ exports.updateStaff = async (req, res) => {
     const item = await StaffMember.findByPk(req.params.id);
     if (!item) return Response(res, 404, { reason: 'Membre du personnel introuvable' });
     const { name, role, email, phone, image, isOrganizer, extra, socialLinks } = req.body;
-    
+
     if (name?.trim()) {
       item.name = name.trim();
       item.slug = await uniqueStaffSlug(name.trim(), item.id);
@@ -595,7 +595,7 @@ exports.updateStaff = async (req, res) => {
 
     const payload = serializeStaff(item.get ? item.get({ plain: true }) : item);
     await item.update(payload);
-    
+
     return Response(res, 200, { item: deserializeStaff(item) });
   } catch (e) {
     return Response(res, 500, { reason: e.message });

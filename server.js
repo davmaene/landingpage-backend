@@ -15,6 +15,7 @@ const centerRoutes        = require('./routes/centers');
 const faqRoutes           = require('./routes/faqs');
 const loginHistoryRoutes  = require('./routes/loginHistory');
 const visitRoutes         = require('./routes/visits');
+const { sendMail } = require('./utils/mailer');
 
 const app = express();
 
@@ -58,7 +59,6 @@ app.use('/api', (req, res) => Response(res, 404, { path: req.originalUrl }));
 
 // Error handler
 app.use((err, req, res, next) => {
-  console.error(err);
   return Response(res, 500, { reason: err.message || 'Erreur serveur' });
 });
 
@@ -68,24 +68,23 @@ async function start() {
   try {
     await sequelize.authenticate();
     console.log('[ SYNC ] Database connected');
-    await cleanupIndexes(sequelize);
-    await sequelize.sync({ alter: true });
+    // await cleanupIndexes(sequelize);
+    // await sequelize.sync({ alter: true });
     // await seedDatabase();
 
     // ── Purge automatique de l'historique toutes les heures (rétention 24h) ──
-    const { LoginHistory } = require('./models');
-    const { Op } = require('sequelize');
-    const RETENTION_MS = 24 * 60 * 60 * 1000;
-    setInterval(async () => {
-      try {
-        const cutoff  = new Date(Date.now() - RETENTION_MS);
-        const deleted = await LoginHistory.destroy({ where: { createdAt: { [Op.lt]: cutoff } } });
-        if (deleted > 0) console.log(`[ PURGE ] ${deleted} entrée(s) login_history supprimée(s)`);
-      } catch (err) {
-        console.warn('[ PURGE ] Erreur purge login_history:', err.message);
-      }
-    }, 60 * 60 * 1000); // toutes les heures
-
+    // const { LoginHistory } = require('./models');
+    // const { Op } = require('sequelize');
+    // const RETENTION_MS = 24 * 60 * 60 * 1000;
+    // setInterval(async () => {
+    //   try {
+    //     const cutoff  = new Date(Date.now() - RETENTION_MS);
+    //     const deleted = await LoginHistory.destroy({ where: { createdAt: { [Op.lt]: cutoff } } });
+    //     if (deleted > 0) console.log(`[ PURGE ] ${deleted} entrée(s) login_history supprimée(s)`);
+    //   } catch (err) {
+    //     console.warn('[ PURGE ] Erreur purge login_history:', err.message);
+    //   }
+    // }, 60 * 60 * 1000); // toutes les heures
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`Server running on port :`, PORT);
     });
