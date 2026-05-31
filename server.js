@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const { sequelize } = require('./models');
 const { seedDatabase } = require('./utils/seed');
+const { cleanupIndexes } = require('./utils/cleanupIndexes');
 const { Response } = require('./utils/Response');
 
 const authRoutes = require('./routes/auth');
@@ -63,7 +64,8 @@ async function start() {
   try {
     await sequelize.authenticate();
     console.log('[ SYNC ] Database connected');
-    // await sequelize.sync({ alter: true });
+    await cleanupIndexes(sequelize);
+    await sequelize.sync({ alter: true });
     // await seedDatabase();
 
     app.listen(PORT, '0.0.0.0', () => {

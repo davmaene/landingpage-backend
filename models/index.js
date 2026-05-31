@@ -4,7 +4,7 @@ const sequelize = require('../config/database');
 const User = sequelize.define('User', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   name: { type: DataTypes.STRING(120), allowNull: false },
-  email: { type: DataTypes.STRING(160), unique: true, allowNull: false },
+  email: { type: DataTypes.STRING(160), allowNull: false },        // ← unique retiré ici
   password: { type: DataTypes.STRING(255), allowNull: false },
   role: {
     type: DataTypes.ENUM('super_admin', 'faculty_publisher'),
@@ -14,13 +14,19 @@ const User = sequelize.define('User', {
   facultyId: { type: DataTypes.INTEGER, allowNull: true },
   avatar: { type: DataTypes.STRING(255), allowNull: true },
   isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
-}, { tableName: 'users', timestamps: true });
+}, {
+  tableName: 'users',
+  timestamps: true,
+  indexes: [
+    { unique: true, fields: ['email'], name: 'users_email_unique' },  // ← ici, avec nom fixe
+  ],
+});
 
 const Faculty = sequelize.define('Faculty', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   name: { type: DataTypes.STRING(200), allowNull: false },
   nameEn: { type: DataTypes.STRING(200), allowNull: true },
-  slug: { type: DataTypes.STRING(220), unique: true, allowNull: false },
+  slug: { type: DataTypes.STRING(220), allowNull: false },           // ← unique retiré
   domaine: { type: DataTypes.STRING(200), allowNull: false },
   domaineEn: { type: DataTypes.STRING(200), allowNull: true },
   description: { type: DataTypes.TEXT('long'), allowNull: true },
@@ -30,7 +36,13 @@ const Faculty = sequelize.define('Faculty', {
   secretary: { type: DataTypes.STRING(200), allowNull: true },
   secretaryEn: { type: DataTypes.STRING(200), allowNull: true },
   coverImage: { type: DataTypes.STRING(500), allowNull: true },
-}, { tableName: 'faculties', timestamps: true });
+}, {
+  tableName: 'faculties',
+  timestamps: true,
+  indexes: [
+    { unique: true, fields: ['slug'], name: 'faculties_slug_unique' },
+  ],
+});
 
 const Filiere = sequelize.define('Filiere', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -73,9 +85,15 @@ const Content = sequelize.define('Content', {
 
 const Newsletter = sequelize.define('Newsletter', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  email: { type: DataTypes.STRING(160), unique: true, allowNull: false },
+  email: { type: DataTypes.STRING(160), allowNull: false },          // ← unique retiré
   isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
-}, { tableName: 'newsletters', timestamps: true });
+}, {
+  tableName: 'newsletters',
+  timestamps: true,
+  indexes: [
+    { unique: true, fields: ['email'], name: 'newsletters_email_unique' },
+  ],
+});
 
 const ContactMessage = sequelize.define('ContactMessage', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -89,10 +107,16 @@ const ContactMessage = sequelize.define('ContactMessage', {
 const PasswordResetToken = sequelize.define('PasswordResetToken', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   userId: { type: DataTypes.INTEGER, allowNull: false },
-  token: { type: DataTypes.STRING(120), unique: true, allowNull: false },
+  token: { type: DataTypes.STRING(120), allowNull: false },          // ← unique retiré
   expiresAt: { type: DataTypes.DATE, allowNull: false },
   usedAt: { type: DataTypes.DATE, allowNull: true },
-}, { tableName: 'password_reset_tokens', timestamps: true });
+}, {
+  tableName: 'password_reset_tokens',
+  timestamps: true,
+  indexes: [
+    { unique: true, fields: ['token'], name: 'prt_token_unique' },
+  ],
+});
 
 const Schedule = sequelize.define('Schedule', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -116,7 +140,7 @@ const Schedule = sequelize.define('Schedule', {
 
 const Center = sequelize.define('Center', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  slug: { type: DataTypes.STRING(160), unique: true, allowNull: false },
+  slug: { type: DataTypes.STRING(160), allowNull: false },           // ← unique retiré
   title: { type: DataTypes.STRING(200), allowNull: false },
   description: { type: DataTypes.TEXT, allowNull: false },
   profile: { type: DataTypes.TEXT('long'), allowNull: true },
@@ -135,6 +159,9 @@ const Center = sequelize.define('Center', {
 }, {
   tableName: 'centers',
   timestamps: true,
+  indexes: [
+    { unique: true, fields: ['slug'], name: 'centers_slug_unique' },
+  ],
 });
 
 const Faq = sequelize.define('Faq', {
@@ -150,30 +177,42 @@ const Faq = sequelize.define('Faq', {
 const StaffMember = sequelize.define('StaffMember', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   uuid: { type: DataTypes.STRING(80), allowNull: true },
-  slug: { type: DataTypes.STRING(200), unique: true, allowNull: false },
+  slug: { type: DataTypes.STRING(200), allowNull: false },           // ← unique retiré
   name: { type: DataTypes.STRING(200), allowNull: false },
   role: { type: DataTypes.STRING(200), allowNull: false },
-  email: { type: DataTypes.TEXT, allowNull: true }, // JSON array string
-  phone: { type: DataTypes.TEXT, allowNull: true }, // JSON array string
+  email: { type: DataTypes.TEXT, allowNull: true },
+  phone: { type: DataTypes.TEXT, allowNull: true },
   image: { type: DataTypes.STRING(500), allowNull: true },
   isOrganizer: { type: DataTypes.BOOLEAN, defaultValue: false },
-  extra: { type: DataTypes.TEXT, allowNull: true }, // JSON object string (bibliography, publications, researchInterests, cv)
-  socialLinks: { type: DataTypes.TEXT, allowNull: true }, // JSON array string
-}, { tableName: 'staff_members', timestamps: true });
+  extra: { type: DataTypes.TEXT, allowNull: true },
+  socialLinks: { type: DataTypes.TEXT, allowNull: true },
+}, {
+  tableName: 'staff_members',
+  timestamps: true,
+  indexes: [
+    { unique: true, fields: ['slug'], name: 'staff_members_slug_unique' },
+  ],
+});
 
 const SpecialProgram = sequelize.define('SpecialProgram', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   facultyId: { type: DataTypes.INTEGER, allowNull: false },
   name: { type: DataTypes.STRING(200), allowNull: false },
   nameEn: { type: DataTypes.STRING(200), allowNull: true },
-  slug: { type: DataTypes.STRING(220), unique: true, allowNull: false },
+  slug: { type: DataTypes.STRING(220), allowNull: false },           // ← unique retiré
   description: { type: DataTypes.TEXT('long'), allowNull: true },
   descriptionEn: { type: DataTypes.TEXT('long'), allowNull: true },
   coverImage: { type: DataTypes.STRING(500), allowNull: true },
   isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
-}, { tableName: 'special_programs', timestamps: true });
+}, {
+  tableName: 'special_programs',
+  timestamps: true,
+  indexes: [
+    { unique: true, fields: ['slug'], name: 'special_programs_slug_unique' },
+  ],
+});
 
-// Helpers to (de)serialize JSON fields
+// --- Helpers JSON (inchangés) ---
 const JSON_FIELDS = ['images', 'direction', 'domaineInterventions', 'etudesRealisees', 'partenaires', 'contacts'];
 function serializeCenter(values) {
   const out = { ...values };
@@ -212,7 +251,7 @@ function deserializeStaff(instance) {
   return obj;
 }
 
-// Associations
+// --- Associations (inchangées) ---
 Faculty.hasMany(Filiere, { foreignKey: 'facultyId', as: 'filieres', onDelete: 'CASCADE' });
 Filiere.belongsTo(Faculty, { foreignKey: 'facultyId', as: 'faculty' });
 
@@ -240,4 +279,9 @@ PasswordResetToken.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 Center.belongsTo(Faculty, { foreignKey: 'facultyId', as: 'faculty' });
 Center.belongsTo(User, { foreignKey: 'authorId', as: 'author' });
 
-module.exports = { sequelize, User, Faculty, Filiere, Content, Newsletter, ContactMessage, PasswordResetToken, Schedule, Center, Faq, StaffMember, SpecialProgram, serializeCenter, deserializeCenter, serializeStaff, deserializeStaff };
+module.exports = {
+  sequelize, User, Faculty, Filiere, Content, Newsletter,
+  ContactMessage, PasswordResetToken, Schedule, Center,
+  Faq, StaffMember, SpecialProgram,
+  serializeCenter, deserializeCenter, serializeStaff, deserializeStaff,
+};
