@@ -14,6 +14,7 @@ const scheduleRoutes      = require('./routes/schedules');
 const centerRoutes        = require('./routes/centers');
 const faqRoutes           = require('./routes/faqs');
 const loginHistoryRoutes  = require('./routes/loginHistory');
+const visitRoutes         = require('./routes/visits');
 
 const app = express();
 
@@ -49,6 +50,7 @@ app.use('/api/cloudinary',    cloudinaryRoutes);
 app.use('/api/schedules',     scheduleRoutes);
 app.use('/api/centers',       centerRoutes);
 app.use('/api/faqs',          faqRoutes);
+app.use('/api/visits',        visitRoutes);
 app.use('/api',               miscRoutes);
 
 // 404

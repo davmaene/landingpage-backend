@@ -17,12 +17,13 @@ const Faq                = require('./Faq')(sequelize);
 const StaffMember        = require('./StaffMember')(sequelize);
 const SpecialProgram     = require('./SpecialProgram')(sequelize);
 const LoginHistory       = require('./LoginHistory')(sequelize);
+const SiteVisit          = require('./SiteVisit')(sequelize);
 
 // ─── Associations ──────────────────────────────────────────────────────────────
 const models = {
   User, Faculty, Filiere, Content, Newsletter,
   ContactMessage, PasswordResetToken, Schedule,
-  Center, Faq, StaffMember, SpecialProgram, LoginHistory,
+  Center, Faq, StaffMember, SpecialProgram, LoginHistory, SiteVisit,
 };
 
 Object.values(models).forEach((model) => {
