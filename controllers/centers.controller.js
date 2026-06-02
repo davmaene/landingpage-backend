@@ -27,7 +27,9 @@ exports.getBySlug = async (req, res) => {
 exports.adminList = async (req, res) => {
   const where = {};
   if (req.query.status) where.status = req.query.status;
-  if (req.user.role === 'faculty_publisher') where.authorId = req.user.id;
+  if (req.user.role === 'faculty_publisher' || req.user.role === 'center_publisher') {
+    where.authorId = req.user.id;
+  }
   const items = await Center.findAll({ where, include: includes, order: [['createdAt', 'DESC']] });
   const rows = mapItems(items);
   return Response(res, 200, { length: rows.length, rows });
@@ -54,7 +56,9 @@ exports.create = async (req, res) => {
       etudesRealisees: Array.isArray(etudesRealisees) ? etudesRealisees : [],
       partenaires: Array.isArray(partenaires) ? partenaires : [],
       contacts: Array.isArray(contacts) ? contacts : [],
-      facultyId: req.user.role === 'faculty_publisher' ? req.user.facultyId : (facultyId || null),
+      facultyId: req.user.role === 'faculty_publisher'
+        ? req.user.facultyId
+        : (facultyId || null),
       authorId: req.user.id, status, publishedAt,
     });
     const item = await Center.create(payload);
@@ -77,7 +81,10 @@ exports.update = async (req, res) => {
     if (req.body[f] !== undefined) item[f] = JSON.stringify(req.body[f]);
   });
   if (req.body.title) item.slug = slugify(req.body.title, { lower: true, strict: true }) + '-' + item.id;
-  if (req.user.role === 'faculty_publisher') { item.status = 'pending'; item.publishedAt = null; }
+  if (req.user.role === 'faculty_publisher' || req.user.role === 'center_publisher') {
+    item.status = 'pending';
+    item.publishedAt = null;
+  }
   await item.save();
   return Response(res, 200, { item: deserializeCenter(item) });
 };

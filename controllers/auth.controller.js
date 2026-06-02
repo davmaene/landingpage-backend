@@ -2,7 +2,7 @@
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
-const { User, Faculty, PasswordResetToken, LoginHistory } = require('../models');
+const { User, Faculty, Center, StaffMember, PasswordResetToken, LoginHistory } = require('../models');
 const { sign } = require('../middleware/auth.middleware');
 const { sendMail } = require('../utils/mailer');
 const { Response } = require('../utils/Response');
@@ -32,7 +32,10 @@ exports.login = async (req, res) => {
 
     const user = await User.findOne({
       where: { email: emailNorm },
-      include: [{ model: Faculty, as: 'faculty' }],
+      include: [
+        { model: Faculty, as: 'faculty' },
+        { model: Center, as: 'center', attributes: ['id', 'title', 'slug'] },
+      ],
     });
 
     if (!user) {
@@ -70,17 +73,42 @@ exports.register = async (req, res) => {
   if (req.user.role !== 'super_admin')
     return Response(res, 403, { reason: 'Seul un super admin peut créer un compte' });
   try {
-    const { name, email, password, role, facultyId } = req.body;
+    const { name, email, password, role, facultyId, centerId, staffId } = req.body;
     if (!name || !email || !password) return Response(res, 401, { reason: 'Champs requis manquants' });
+
+    let resolvedRole = 'faculty_publisher';
+    if (role === 'super_admin') resolvedRole = 'super_admin';
+    else if (role === 'center_publisher') resolvedRole = 'center_publisher';
+
+    if (resolvedRole === 'faculty_publisher' && !facultyId)
+      return Response(res, 401, { reason: 'Une faculté est requise pour un publieur faculté' });
+    if (resolvedRole === 'center_publisher' && !centerId)
+      return Response(res, 401, { reason: 'Un centre est requis pour un publieur centre' });
+
     const exists = await User.findOne({ where: { email: email.toLowerCase().trim() } });
     if (exists) return Response(res, 405, { reason: 'Email déjà utilisé' });
+
+    let resolvedName = String(name).trim();
+    let resolvedEmail = email.toLowerCase().trim();
+    if (staffId) {
+      const member = await StaffMember.findByPk(staffId);
+      if (!member) return Response(res, 404, { reason: 'Membre du personnel introuvable' });
+      if (!resolvedName) resolvedName = member.name;
+      const staffEmails = Array.isArray(member.email)
+        ? member.email
+        : (typeof member.email === 'string' ? (() => { try { return JSON.parse(member.email); } catch { return []; } })() : []);
+      if (staffEmails.length && !email) resolvedEmail = String(staffEmails[0]).toLowerCase().trim();
+    }
+
     const hashed = await bcrypt.hash(password, 10);
     const user = await User.create({
-      name,
-      email: email.toLowerCase().trim(),
+      name: resolvedName,
+      email: resolvedEmail,
       password: hashed,
-      role: role === 'super_admin' ? 'super_admin' : 'faculty_publisher',
-      facultyId: facultyId || null,
+      role: resolvedRole,
+      facultyId: resolvedRole === 'faculty_publisher' ? facultyId : null,
+      centerId: resolvedRole === 'center_publisher' ? centerId : null,
+      staffId: staffId || null,
     });
     const safe = user.toJSON();
     delete safe.password;

@@ -2,6 +2,12 @@ const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
 const slugify = require('slugify');
 const { Faculty, Filiere, Content, Newsletter, ContactMessage, User, Schedule, Faq, Center, StaffMember, SpecialProgram, serializeStaff, deserializeStaff } = require('../models');
+
+const userIncludes = [
+  { model: Faculty, as: 'faculty' },
+  { model: Center, as: 'center', attributes: ['id', 'title', 'slug'] },
+  { model: StaffMember, as: 'staff', attributes: ['id', 'name', 'role', 'slug'] },
+];
 const { sendMail, isConfigured } = require('../utils/mailer');
 const { publicationBroadcastTemplate } = require('../utils/emailTemplates');
 const { Response } = require('../utils/Response');
@@ -468,7 +474,7 @@ exports.stats = async (req, res) => {
 exports.listUsers = async (req, res) => {
   const items = await User.findAll({
     attributes: { exclude: ['password'] },
-    include: [{ model: Faculty, as: 'faculty' }],
+    include: userIncludes,
     order: [['createdAt', 'DESC']],
   });
   return Response(res, 200, { length: items.length, rows: items });
@@ -478,7 +484,7 @@ exports.updateUser = async (req, res) => {
   try {
     const u = await User.findByPk(req.params.id);
     if (!u) return Response(res, 404, { reason: 'Utilisateur introuvable' });
-    const { name, email, role, facultyId, isActive, password } = req.body;
+    const { name, email, role, facultyId, centerId, staffId, isActive, password } = req.body;
     if (name !== undefined) u.name = String(name).trim();
     if (email !== undefined) {
       const normalized = String(email).toLowerCase().trim();
@@ -487,20 +493,34 @@ exports.updateUser = async (req, res) => {
       u.email = normalized;
     }
     if (role !== undefined) {
-      u.role = role === 'super_admin' ? 'super_admin' : 'faculty_publisher';
+      if (role === 'super_admin') u.role = 'super_admin';
+      else if (role === 'center_publisher') u.role = 'center_publisher';
+      else u.role = 'faculty_publisher';
     }
     if (facultyId !== undefined) u.facultyId = facultyId || null;
+    if (centerId !== undefined) u.centerId = centerId || null;
+    if (staffId !== undefined) u.staffId = staffId || null;
     if (isActive !== undefined) u.isActive = !!isActive;
     if (password) {
       if (password.length < 6) return Response(res, 405, { reason: 'Mot de passe trop court (min 6)' });
       u.password = await bcrypt.hash(password, 10);
     }
-    if (u.role === 'faculty_publisher' && !u.facultyId)
-      return Response(res, 401, { reason: 'Une faculté est requise pour un publieur' });
+    if (u.role === 'faculty_publisher') {
+      u.centerId = null;
+      if (!u.facultyId) return Response(res, 401, { reason: 'Une faculté est requise pour un publieur faculté' });
+    }
+    if (u.role === 'center_publisher') {
+      u.facultyId = null;
+      if (!u.centerId) return Response(res, 401, { reason: 'Un centre est requis pour un publieur centre' });
+    }
+    if (u.role === 'super_admin') {
+      u.facultyId = null;
+      u.centerId = null;
+    }
     await u.save();
     const safe = await User.findByPk(u.id, {
       attributes: { exclude: ['password'] },
-      include: [{ model: Faculty, as: 'faculty' }],
+      include: userIncludes,
     });
     return Response(res, 200, { user: safe });
   } catch (e) {

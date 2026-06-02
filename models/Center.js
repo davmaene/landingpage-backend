@@ -54,6 +54,8 @@ module.exports = (sequelize) => {
   Center.associate = (models) => {
     Center.belongsTo(models.Faculty, { foreignKey: 'facultyId', as: 'faculty' });
     Center.belongsTo(models.User,    { foreignKey: 'authorId',  as: 'author' });
+    Center.hasMany(models.Content,   { foreignKey: 'centerId',  as: 'contents' });
+    Center.hasMany(models.User,      { foreignKey: 'centerId',  as: 'publishers' });
   };
 
   return Center;

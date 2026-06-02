@@ -1,10 +1,16 @@
 const jwt = require('jsonwebtoken');
-const { User, Faculty } = require('../models');
+const { User, Faculty, Center } = require('../models');
 const { Response } = require('../helpers/helper.response');
 
 const sign = (user) =>
   jwt.sign(
-    { id: user.id, email: user.email, role: user.role, facultyId: user.facultyId },
+    {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      facultyId: user.facultyId,
+      centerId: user.centerId,
+    },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
@@ -17,7 +23,10 @@ const requireAuth = async (req, res, next) => {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findByPk(payload.id, {
       attributes: { exclude: ['password'] },
-      include: [{ model: Faculty, as: 'faculty' }],
+      include: [
+        { model: Faculty, as: 'faculty' },
+        { model: Center, as: 'center', attributes: ['id', 'title', 'slug'] },
+      ],
     });
     if (!user || !user.isActive) return res.status(401).json({ message: 'Utilisateur invalide' });
     req.user = user;
