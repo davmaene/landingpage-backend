@@ -32,6 +32,7 @@ module.exports = (sequelize) => {
     name:        { type: DataTypes.STRING(200), allowNull: false },
     role:        { type: DataTypes.STRING(200), allowNull: false },
     email:       { type: DataTypes.TEXT, allowNull: true },
+    description: { type: DataTypes.TEXT, allowNull: true },
     phone:       { type: DataTypes.TEXT, allowNull: true },
     image:       { type: DataTypes.STRING(500), allowNull: true },
     isOrganizer: { type: DataTypes.BOOLEAN, defaultValue: false },

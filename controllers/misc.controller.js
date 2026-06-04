@@ -573,11 +573,12 @@ const uniqueStaffSlug = async (name, excludeId) => {
 
 exports.createStaff = async (req, res) => {
   try {
-    const { name, role, email, phone, image, isOrganizer, extra, socialLinks } = req.body;
+    const { name, role, email, phone, image, isOrganizer, extra, socialLinks, description } = req.body;
     if (!name?.trim() || !role?.trim())
       return Response(res, 401, { reason: 'Nom et rôle requis' });
     const slug = await uniqueStaffSlug(name.trim());
     const payload = serializeStaff({
+      description: description || null,
       slug,
       name: name.trim(),
       role: role.trim(),

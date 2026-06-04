@@ -90,7 +90,7 @@ async function start() {
     });
   } catch (e) {
     console.error('[ SYNC ] Startup error:', e);
-    process.exit(1);
+    // process.exit(1);
   }
 }
 
