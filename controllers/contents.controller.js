@@ -1,29 +1,11 @@
-// controllers/contents.controller.js
 const slugify = require('slugify');
 const { Op } = require('sequelize');
 const { Content, User, Faculty, Center, Filiere, SpecialProgram, Newsletter } = require('../models');
 const { Response } = require('../utils/Response');
 const { sendMail, isConfigured } = require('../utils/mailer');
 const { publicationBroadcastTemplate } = require('../utils/emailTemplates');
-
-const parseGallery = (raw) => {
-  if (!raw) return [];
-  if (Array.isArray(raw)) return raw.filter(Boolean);
-  if (typeof raw === 'string') {
-    try {
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
-    } catch {
-      return [];
-    }
-  }
-  return [];
-};
-
-const stringifyGallery = (raw) => {
-  const arr = parseGallery(raw).slice(0, 4);
-  return arr.length ? JSON.stringify(arr) : null;
-};
+const { isSocialBot, generateOgHtml, parseGallery, stringifyGallery } = require('../utils/helpers');
+const path = require("path");
 
 const ALLOWED_ATTACHMENT_TYPES = ['youtube', 'video', 'pdf'];
 const ALLOWED_ATTACHMENT_LAYOUTS = ['portrait', 'landscape', 'auto'];
@@ -87,6 +69,36 @@ exports.list = async (req, res) => {
   }
 };
 
+exports.getBySlugOnlyForBot = async (req, res) => {
+  try {
+    const slug = req.params.slug;
+    const userAgent = req.headers['user-agent'] || '';
+
+    // 1. Récupérer l'article (même logique que ton middleware getBySlug)
+    const item = await Content.findOne({
+      where: { slug, status: 'published' },
+      include: authorIncludes,
+    });
+    if (!item) {
+      return res.status(404).send('Article non trouvé');
+    }
+
+    // 2. Si c'est un bot social → on renvoie le HTML spécial
+    if (isSocialBot(userAgent)) {
+      const html = generateOgHtml(item, req);
+      return res.status(200).send(html);
+    }
+
+    // 3. Pour les humains → servir l'index.html de ton build React
+    //    (assure-toi que le chemin vers index.html est correct)
+    const indexPath = path.join(__dirname, '..', 'build', 'index.html');
+    res.sendFile(indexPath);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Erreur serveur');
+  }
+}
+
 exports.getBySlug = async (req, res) => {
   try {
     const item = await Content.findOne({
@@ -148,7 +160,6 @@ exports.create = async (req, res) => {
     });
     return Response(res, 201, { item: mapContentRow(item) });
   } catch (e) {
-    console.error(e);
     return Response(res, 500, { reason: e.message });
   }
 };
