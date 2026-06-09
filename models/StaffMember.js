@@ -1,8 +1,7 @@
-// models/StaffMember.js
 const { DataTypes } = require('sequelize');
 
 // ─── Helpers JSON ─────────────────────────────────────────────────────────────
-const STAFF_JSON_FIELDS = ['email', 'phone', 'extra', 'socialLinks'];
+const STAFF_JSON_FIELDS = ['email', 'phone', 'extra', 'socialLinks', 'description'];
 
 const serializeStaff = (values) => {
   const out = { ...values };
@@ -26,16 +25,17 @@ const deserializeStaff = (instance) => {
 // ─── Model ────────────────────────────────────────────────────────────────────
 module.exports = (sequelize) => {
   const StaffMember = sequelize.define('StaffMember', {
-    id:          { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    uuid:        { type: DataTypes.STRING(80), allowNull: true },
-    slug:        { type: DataTypes.STRING(200), allowNull: false },
-    name:        { type: DataTypes.STRING(200), allowNull: false },
-    role:        { type: DataTypes.STRING(200), allowNull: false },
-    email:       { type: DataTypes.TEXT, allowNull: true },
-    phone:       { type: DataTypes.TEXT, allowNull: true },
-    image:       { type: DataTypes.STRING(500), allowNull: true },
+    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    uuid: { type: DataTypes.STRING(80), allowNull: true },
+    slug: { type: DataTypes.STRING(200), allowNull: false },
+    name: { type: DataTypes.STRING(200), allowNull: false },
+    role: { type: DataTypes.STRING(200), allowNull: false },
+    email: { type: DataTypes.TEXT, allowNull: true },
+    description: { type: DataTypes.TEXT, allowNull: true },
+    phone: { type: DataTypes.TEXT, allowNull: true },
+    image: { type: DataTypes.STRING(500), allowNull: true },
     isOrganizer: { type: DataTypes.BOOLEAN, defaultValue: false },
-    extra:       { type: DataTypes.TEXT, allowNull: true },
+    extra: { type: DataTypes.TEXT, allowNull: true },
     socialLinks: { type: DataTypes.TEXT, allowNull: true },
   }, {
     tableName: 'staff_members',
@@ -48,5 +48,5 @@ module.exports = (sequelize) => {
   return StaffMember;
 };
 
-module.exports.serializeStaff   = serializeStaff;
+module.exports.serializeStaff = serializeStaff;
 module.exports.deserializeStaff = deserializeStaff;

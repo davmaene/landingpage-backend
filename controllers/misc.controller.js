@@ -19,7 +19,6 @@ const facultyStaffIncludes = [
 ];
 const facultyIncludes = [{ model: Filiere, as: 'filieres' }, ...facultyStaffIncludes];
 
-// Résout le nom d'un membre du staff à partir de son id (pour l'affichage public rétro-compatible)
 const staffNameById = async (staffId) => {
   if (!staffId) return null;
   const member = await StaffMember.findByPk(staffId, { attributes: ['name'] });
@@ -201,7 +200,6 @@ exports.deleteFaculty = async (req, res) => {
   }
 };
 
-// ---------------- Search ----------------
 exports.search = async (req, res) => {
   const q = (req.query.q || '').trim();
   if (!q) return Response(res, 200, { q: '', contents: [], faculties: [], filieres: [] });
@@ -220,7 +218,6 @@ exports.search = async (req, res) => {
   return Response(res, 200, { q, contents, faculties, filieres });
 };
 
-// ---------------- Newsletter ----------------
 exports.subscribe = async (req, res) => {
   try {
     const email = String(req.body.email || '').toLowerCase().trim();
@@ -374,7 +371,6 @@ exports.broadcastNewsletter = async (req, res) => {
   }
 };
 
-// ---------------- Contact ----------------
 exports.sendContact = async (req, res) => {
   try {
     const { name, email, subject, message } = req.body;
@@ -541,7 +537,6 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
-// ---------------- Staff ----------------
 exports.listStaff = async (req, res) => {
   try {
     const items = await StaffMember.findAll({ order: [['name', 'ASC']] });

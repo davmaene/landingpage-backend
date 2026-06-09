@@ -74,23 +74,20 @@ exports.getBySlugOnlyForBot = async (req, res) => {
     const slug = req.params.slug;
     const userAgent = req.headers['user-agent'] || '';
 
-    // 1. Récupérer l'article (même logique que ton middleware getBySlug)
     const item = await Content.findOne({
       where: { slug, status: 'published' },
       include: authorIncludes,
     });
+    
     if (!item) {
       return res.status(404).send('Article non trouvé');
     }
 
-    // 2. Si c'est un bot social → on renvoie le HTML spécial
     if (isSocialBot(userAgent)) {
       const html = generateOgHtml(item, req);
       return res.status(200).send(html);
     }
 
-    // 3. Pour les humains → servir l'index.html de ton build React
-    //    (assure-toi que le chemin vers index.html est correct)
     const indexPath = path.join(__dirname, '..', 'build', 'index.html');
     res.sendFile(indexPath);
   } catch (error) {
