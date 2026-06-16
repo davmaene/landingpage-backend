@@ -321,7 +321,6 @@ exports.listNewsletter = async (req, res) => {
   return Response(res, 200, { length: items.length, rows: items });
 };
 
-// Diffuse une publication aux abonnés (endpoint appelé par le frontend).
 exports.broadcastNewsletter = async (req, res) => {
   try {
     const { contentId, recipientIds, mode } = req.body;
