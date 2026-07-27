@@ -18,12 +18,18 @@ const StaffMember        = require('./StaffMember')(sequelize);
 const SpecialProgram     = require('./SpecialProgram')(sequelize);
 const LoginHistory       = require('./LoginHistory')(sequelize);
 const SiteVisit          = require('./SiteVisit')(sequelize);
+const Promotion         = require('./Promotion')(sequelize);
+const Ue                = require('./Ue')(sequelize);
+const Ec                = require('./Ec')(sequelize);
+const Attribution       = require('./Attribution')(sequelize);
+const TeacherConfig     = require('./TeacherConfig')(sequelize);
 
 // ─── Associations ──────────────────────────────────────────────────────────────
 const models = {
   User, Faculty, Filiere, Content, Newsletter,
   ContactMessage, PasswordResetToken, Schedule,
   Center, Faq, StaffMember, SpecialProgram, LoginHistory, SiteVisit,
+  Promotion, Ue, Ec, Attribution, TeacherConfig,
 };
 
 Object.values(models).forEach((model) => {

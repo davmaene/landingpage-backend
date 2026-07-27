@@ -2,7 +2,7 @@
 const { DataTypes } = require('sequelize');
 
 // ─── Helpers JSON ─────────────────────────────────────────────────────────────
-const STAFF_JSON_FIELDS = ['email', 'phone', 'extra', 'socialLinks'];
+const STAFF_JSON_FIELDS = ['email', 'description', 'phone', 'extra', 'socialLinks'];
 
 const serializeStaff = (values) => {
   const out = { ...values };

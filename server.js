@@ -15,6 +15,7 @@ const centerRoutes        = require('./routes/centers');
 const faqRoutes           = require('./routes/faqs');
 const loginHistoryRoutes  = require('./routes/loginHistory');
 const visitRoutes         = require('./routes/visits');
+const coursEvaluationRoutes = require('./routes/coursEvaluation');
 const { sendMail } = require('./utils/mailer');
 
 const app = express();
@@ -30,7 +31,7 @@ app.use(cors({
       callback(new Error('Bloqué par la politique CORS de l\'API'));
     }
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   credentials: true
 }));
@@ -52,6 +53,7 @@ app.use('/api/schedules',     scheduleRoutes);
 app.use('/api/centers',       centerRoutes);
 app.use('/api/faqs',          faqRoutes);
 app.use('/api/visits',        visitRoutes);
+app.use('/api/cours-evaluation', coursEvaluationRoutes);
 app.use('/api',               miscRoutes);
 
 // 404
@@ -68,8 +70,8 @@ async function start() {
   try {
     await sequelize.authenticate();
     console.log('[ SYNC ] Database connected');
-    // await cleanupIndexes(sequelize);
-    // await sequelize.sync({ alter: true });
+    await cleanupIndexes(sequelize);
+    await sequelize.sync({ alter: true });
     // await seedDatabase();
 
     // ── Purge automatique de l'historique toutes les heures (rétention 24h) ──
