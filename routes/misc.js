@@ -48,4 +48,26 @@ router.post('/staff', requireAuth, requireRole('super_admin'), c.createStaff);
 router.put('/staff/:id', requireAuth, requireRole('super_admin'), c.updateStaff);
 router.delete('/staff/:id', requireAuth, requireRole('super_admin'), c.deleteStaff);
 
+// Key Facts
+router.get('/key-facts', c.listKeyFacts);
+router.get('/key-facts/:id', c.getKeyFact);
+router.post('/key-facts', requireAuth, requireRole('super_admin'), c.createKeyFact);
+router.put('/key-facts/:id', requireAuth, requireRole('super_admin'), c.updateKeyFact);
+router.delete('/key-facts/:id', requireAuth, requireRole('super_admin'), c.deleteKeyFact);
+
+// Rectors
+router.get('/rectors', c.listRectors);
+router.get('/rectors/:id', c.getRector);
+router.post('/rectors', requireAuth, requireRole('super_admin'), c.createRector);
+router.put('/rectors/:id', requireAuth, requireRole('super_admin'), c.updateRector);
+router.delete('/rectors/:id', requireAuth, requireRole('super_admin'), c.deleteRector);
+
+// Partners
+router.get('/partners', c.listPartners);
+router.get('/partners/slug/:slug', c.getPartnerBySlug);
+router.get('/partners/:id', c.getPartner);
+router.post('/partners', requireAuth, requireRole('super_admin'), c.createPartner);
+router.put('/partners/:id', requireAuth, requireRole('super_admin'), c.updatePartner);
+router.delete('/partners/:id', requireAuth, requireRole('super_admin'), c.deletePartner);
+
 module.exports = router;

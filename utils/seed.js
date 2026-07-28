@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const slugify = require('slugify');
-const { User, Faculty, Filiere, Content, Center, Faq, StaffMember, SpecialProgram, serializeCenter, serializeStaff } = require('../models');
+const { User, Faculty, Filiere, Content, Center, Faq, StaffMember, SpecialProgram, KeyFact, Rector, Partner, serializeCenter, serializeStaff } = require('../models');
 
 const FACULTIES = [
   {
@@ -106,6 +106,70 @@ const SAMPLE_CONTENTS = [
     excerpt: 'Programme complet des activités culturelles et sportives pour les étudiants.',
     content:
       "<p>Découvrez l'ensemble du programme des activités culturelles et sportives organisées by l'ULPGL pour cette nouvelle saison académique.</p>",
+    category: 'Culturel',
+    status: 'published',
+  },
+  {
+    type: 'activity',
+    title: 'Tournoi inter-facultés de football 2026',
+    excerpt: 'Les équipes des 6 facultés s\'affrontent dans un tournoi de football passionnant.',
+    content: '<p>Le tournoi inter-facultés de football bat son plein cette année avec la participation de toutes les facultés. Venez encourager vos camarades au stade universitaire.</p>',
+    category: 'Sportif',
+    status: 'published',
+  },
+  {
+    type: 'activity',
+    title: 'Atelier de lancement de startup — Parcours Entrepreneuriat',
+    excerpt: 'Un atelier pratique pour transformer vos idées en projet entrepreneurial.',
+    content: '<p>Dans le cadre du programme Paraacadémique, l\'ULPGL organise un atelier de 3 jours sur le lancement de startup. Au programme : design thinking, business model canvas et pitch devant des investisseurs.</p>',
+    category: 'Paraacadémique',
+    status: 'published',
+  },
+  {
+    type: 'activity',
+    title: 'Projet tutoré : Cartographie numérique du campus',
+    excerpt: 'Les étudiants en informatique réalisent une cartographie interactive et complète du campus.',
+    content: '<p>Ce projet tutoré, encadré par le département d\'informatique, vise à créer une application web de cartographie interactive du campus Moïse et Salomon, incluant les bâtiments, les services et les espaces verts.</p>',
+    category: 'Projets tutorés',
+    status: 'published',
+  },
+  {
+    type: 'activity',
+    title: 'Projet tutoré : Journal en ligne de l\'ULPGL',
+    excerpt: 'Les étudiants en journalisme lancent le premier webzine universitaire de Goma.',
+    content: '<p>Ce projet tutoré en journalisme a donné naissance au premier webzine de l\'ULPGL. Les étudiants produisent des contenus multimédias (articles, podcasts, vidéos) sur la vie universitaire et les enjeux locaux.</p>',
+    category: 'Projets tutorés',
+    status: 'published',
+  },
+  {
+    type: 'activity',
+    title: 'Chorale universitaire : Concert de fin d\'année',
+    excerpt: 'La chorale de l\'ULPGL présente son grand concert annuel à l\'auditorium.',
+    content: '<p>La chorale universitaire, composée d\'étudiants de toutes les facultés, présente son concert annuel. Au programme : gospel, classique et chants traditionnels des Grands Lacs.</p>',
+    category: 'Culturel',
+    status: 'published',
+  },
+  {
+    type: 'activity',
+    title: 'Campagne de reboisement — Campus vert',
+    excerpt: 'Les étudiants participent à la plantation d\'arbres sur les campus Moïse et Salomon.',
+    content: '<p>Dans le cadre du programme environnemental, l\'ULPGL organise une grande campagne de reboisement. Chaque étudiant est invité à planter et parrainer un arbre sur le campus.</p>',
+    category: 'Paraacadémique',
+    status: 'published',
+  },
+  {
+    type: 'activity',
+    title: 'Conférence-débat : Leadership et éthique en Afrique',
+    excerpt: 'Une conférence animée par des experts sur les défis du leadership en Afrique.',
+    content: '<p>Le cercle de réflexion de l\'ULPGL organise une conférence-débat sur le thème "Leadership et éthique : quels modèles pour l\'Afrique de demain ?" avec des intervenants de renom.</p>',
+    category: 'Paraacadémique',
+    status: 'published',
+  },
+  {
+    type: 'activity',
+    title: 'Journée culturelle : Vivre ensemble aux Grands Lacs',
+    excerpt: 'Une journée dédiée à la diversité culturelle avec spectacles, stands et dégustations.',
+    content: '<p>La journée culturelle annuelle de l\'ULPGL célèbre la diversité des cultures de la région des Grands Lacs. Au programme : danses traditionnelles, expositions d\'artisanat, dégustations culinaires et défilés en tenues traditionnelles.</p>',
     category: 'Culturel',
     status: 'published',
   },
@@ -271,6 +335,31 @@ const SAMPLE_CENTERS = [
   },
 ];
 
+const KEY_FACTS = [
+  { title: 'Etudiants sont formés <br />chez nous ', value: '+10 000', sortOrder: 1 },
+  { title: 'Nombre des campus <br/> ( Campus Moise et Campus Salomon )', value: '2', sortOrder: 2 },
+  { title: 'Nombre de nos professeurs qui sont permanents', value: '115', sortOrder: 3 },
+  { title: "Nombre d'étudiants internes dans les homes", value: '15%', sortOrder: 4 },
+  { title: 'Nombre des diplômes délivrés depuis la création', value: '---', sortOrder: 5 },
+  { title: "Année de création de l'Université Libre des Pays des Grands Lacs", value: '1985', sortOrder: 6 },
+];
+
+const RECTORS = [
+  { name: 'Dr. Samuel Ngayohembako', slug: 'dr-samuel-ngayohembako', startYear: 1985, endYear: 2000, bio: 'Premier Recteur de l\'ULPGL et figure fondatrice de l\'université. Sous son rectorat, l\'ULPGL a posé les bases de son excellence académique dans la Région des Grands Lacs.', sortOrder: 1 },
+  { name: 'Prof. Dr. Faustin Mputu Lelo', slug: 'prof-dr-faustin-mputu-lelo', startYear: 2000, endYear: 2010, bio: 'Second recteur de l\'ULPGL. Il a renforcé la recherche universitaire et élargi l\'offre de formation avec la création de nouvelles facultés.', sortOrder: 2 },
+  { name: 'Prof. Dr. Pierre Muzuri Nzita', slug: 'prof-dr-pierre-muzuri-nzita', startYear: 2010, endYear: 2020, bio: 'A modernisé l\'administration universitaire et développé les infrastructures des campus Moïse et Salomon.', sortOrder: 3 },
+  { name: 'Prof. Dr. Wasso Misona Joseph', slug: 'prof-dr-wasso-misona-joseph', startYear: 2020, endYear: null, bio: 'Recteur actuel de l\'ULPGL. Il poursuit la dynamique de modernisation et de rayonnement régional de l\'université.', sortOrder: 4 },
+];
+
+const PARTNERS = [
+  { name: 'Ministère de l\'Enseignement Supérieur et Universitaire (ESU)', slug: 'ministere-esu', logo: null, url: 'https://mesu.gouv.cd', description: 'Ministère de tutelle de l\'ULPGL, assurant la supervision académique et réglementaire.', sortOrder: 1 },
+  { name: 'Université Protestante au Congo (UPC)', slug: 'universite-protestante-congo', logo: null, url: 'https://upc.ac.cd', description: 'Institution sœur partageant les mêmes valeurs chrétiennes et collaborant sur des programmes de recherche.', sortOrder: 2 },
+  { name: 'CREDDA', slug: 'credda', logo: null, url: 'https://credda-ulpgl.org', description: 'Centre de Recherche sur la Démocratie et le Développement en Afrique, partenaire de recherche et d\'expertise.', sortOrder: 3 },
+  { name: 'Harvard Humanitarian Initiative', slug: 'harvard-humanitarian', logo: null, url: 'https://hhi.harvard.edu', description: 'Partenariat académique pour la recherche humanitaire et la formation en région des Grands Lacs.', sortOrder: 4 },
+  { name: 'Association des Barreaux Américains (ABA)', slug: 'aba-roli', logo: null, url: 'https://www.americanbar.org', description: 'Collaboration pour le renforcement de l\'état de droit et l\'accès à la justice en RDC.', sortOrder: 5 },
+  { name: 'Église du Christ au Congo (ECC)', slug: 'eglise-christ-congo', logo: null, url: null, description: 'Institution ecclésiastique fondatrice de l\'ULPGL, garantissant son identité chrétienne.', sortOrder: 6 },
+];
+
 const FAQS = [
   { question: "Où se situe l'ULPGL Goma ?", answer: "L'ULPGL Goma est située dans la ville de Goma, Avenue du Lac, N°2 Quartier Himbi II, C. Goma, V. Goma" },
   { question: "Quels sont les délais de dépôt des candidatures ?", answer: "Les inscriptions pour la rentrée académique se déroulent généralement entre août and octobre, selon le calendrier publié par l'université." },
@@ -349,19 +438,19 @@ async function seedDatabase() {
     await publisher.save();
   }
 
-  // Sample contents (only if none exist)
-  const count = await Content.count();
-  if (count === 0) {
-    for (const c of SAMPLE_CONTENTS) {
-      const cslug = slugify(c.title, { lower: true, strict: true });
-      await Content.create({
+  // Sample contents — always add missing ones
+  for (const c of SAMPLE_CONTENTS) {
+    const cslug = slugify(c.title, { lower: true, strict: true });
+    await Content.findOrCreate({
+      where: { slug: cslug },
+      defaults: {
         ...c,
         slug: cslug,
         authorId: admin.id,
         facultyId: firstFaculty?.id,
         publishedAt: new Date(),
-      });
-    }
+      },
+    });
   }
 
   // Centres de recherche — sync par slug (aligné sur le frontend statique)
@@ -395,6 +484,28 @@ async function seedDatabase() {
   if (faqCount === 0) {
     for (let i = 0; i < FAQS.length; i++) {
       await Faq.create({ ...FAQS[i], sortOrder: i + 1, isActive: true });
+    }
+  }
+
+  const keyFactCount = await KeyFact.count();
+  if (keyFactCount === 0) {
+    for (const fact of KEY_FACTS) {
+      await KeyFact.create({ ...fact, isActive: true });
+    }
+  }
+
+  const rectorCount = await Rector.count();
+  if (rectorCount === 0) {
+    for (const r of RECTORS) {
+      await Rector.create(r);
+    }
+  }
+
+  // Seeding Partners
+  const partnerCount = await Partner.count();
+  if (partnerCount === 0) {
+    for (const p of PARTNERS) {
+      await Partner.create(p);
     }
   }
 

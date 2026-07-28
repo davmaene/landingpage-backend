@@ -21,7 +21,7 @@ const parseGallery = (raw) => {
 };
 
 const stringifyGallery = (raw) => {
-  const arr = parseGallery(raw).slice(0, 4);
+  const arr = parseGallery(raw).slice(0, 15);
   return arr.length ? JSON.stringify(arr) : null;
 };
 
@@ -66,9 +66,10 @@ const authorIncludes = [
 
 exports.list = async (req, res) => {
   try {
-    const { type, limit = 50, status = 'published', facultyId, centerId, filiereId, specialProgramId } = req.query;
+    const { type, category, limit = 50, status = 'published', facultyId, centerId, filiereId, specialProgramId } = req.query;
     const where = { status };
     if (type) where.type = type;
+    if (category) where.category = category;
     if (facultyId) where.facultyId = facultyId;
     if (centerId) where.centerId = centerId;
     if (filiereId) where.filiereId = filiereId;

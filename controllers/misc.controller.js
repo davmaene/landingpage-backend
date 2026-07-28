@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
 const slugify = require('slugify');
-const { Faculty, Filiere, Content, Newsletter, ContactMessage, User, Schedule, Faq, Center, StaffMember, SpecialProgram, serializeStaff, deserializeStaff } = require('../models');
+const { Faculty, Filiere, Content, Newsletter, ContactMessage, User, Schedule, Faq, Center, StaffMember, SpecialProgram, KeyFact, Rector, Partner, serializeStaff, deserializeStaff } = require('../models');
 
 const userIncludes = [
   { model: Faculty, as: 'faculty' },
@@ -736,6 +736,240 @@ exports.deleteSpecialProgram = async (req, res) => {
     const item = await SpecialProgram.findByPk(req.params.id);
     if (!item) return Response(res, 404, { reason: 'Programme introuvable' });
     await Content.update({ specialProgramId: null }, { where: { specialProgramId: item.id } });
+    await item.destroy();
+    return Response(res, 200, { deleted: true });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+// ---------------- Key Facts ----------------
+exports.listKeyFacts = async (req, res) => {
+  try {
+    const where = {};
+    if (req.query.activeOnly === 'true') where.isActive = true;
+    const items = await KeyFact.findAll({ where, order: [['sortOrder', 'ASC'], ['id', 'ASC']] });
+    return Response(res, 200, { length: items.length, rows: items });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.getKeyFact = async (req, res) => {
+  try {
+    const item = await KeyFact.findByPk(req.params.id);
+    if (!item) return Response(res, 404, { reason: 'Fait clé introuvable' });
+    return Response(res, 200, { item });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.createKeyFact = async (req, res) => {
+  try {
+    const { title, titleEn, value, sortOrder, isActive } = req.body;
+    if (!title?.trim() || !value?.trim())
+      return Response(res, 401, { reason: 'Titre et valeur requis' });
+    const item = await KeyFact.create({
+      title: title.trim(),
+      titleEn: titleEn?.trim() || null,
+      value: value.trim(),
+      sortOrder: sortOrder ?? 0,
+      isActive: isActive === undefined ? true : !!isActive,
+    });
+    return Response(res, 201, { item });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.updateKeyFact = async (req, res) => {
+  try {
+    const item = await KeyFact.findByPk(req.params.id);
+    if (!item) return Response(res, 404, { reason: 'Fait clé introuvable' });
+    const { title, titleEn, value, sortOrder, isActive } = req.body;
+    if (title?.trim()) item.title = title.trim();
+    if (titleEn !== undefined) item.titleEn = titleEn?.trim() || null;
+    if (value?.trim()) item.value = value.trim();
+    if (sortOrder !== undefined) item.sortOrder = sortOrder;
+    if (isActive !== undefined) item.isActive = !!isActive;
+    await item.save();
+    return Response(res, 200, { item });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.deleteKeyFact = async (req, res) => {
+  try {
+    const item = await KeyFact.findByPk(req.params.id);
+    if (!item) return Response(res, 404, { reason: 'Fait clé introuvable' });
+    await item.destroy();
+    return Response(res, 200, { deleted: true });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+// ---------------- Rectors (succession timeline) ----------------
+exports.listRectors = async (req, res) => {
+  try {
+    const items = await Rector.findAll({
+      order: [['startYear', 'ASC'], ['sortOrder', 'ASC']],
+    });
+    return Response(res, 200, { length: items.length, rows: items });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.getRector = async (req, res) => {
+  try {
+    const item = await Rector.findByPk(req.params.id);
+    if (!item) return Response(res, 404, { reason: 'Recteur introuvable' });
+    return Response(res, 200, { item });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.createRector = async (req, res) => {
+  try {
+    const { name, startYear, endYear, image, bio, sortOrder, isActive } = req.body;
+    if (!name?.trim() || startYear == null)
+      return Response(res, 401, { reason: 'Nom et année de début requis' });
+    let slug = slugify(name.trim(), { lower: true, strict: true });
+    const existing = await Rector.findOne({ where: { slug } });
+    if (existing) slug = `${slug}-${Date.now()}`;
+    const item = await Rector.create({
+      name: name.trim(),
+      slug: existing ? `${slug}-${Date.now()}` : slug,
+      startYear: Number(startYear),
+      endYear: endYear != null ? Number(endYear) : null,
+      image: image || null,
+      bio: bio || null,
+      sortOrder: sortOrder ?? 0,
+      isActive: isActive === undefined ? true : !!isActive,
+    });
+    return Response(res, 201, { item });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.updateRector = async (req, res) => {
+  try {
+    const item = await Rector.findByPk(req.params.id);
+    if (!item) return Response(res, 404, { reason: 'Recteur introuvable' });
+    const { name, startYear, endYear, image, bio, sortOrder, isActive } = req.body;
+    if (name?.trim()) {
+      item.name = name.trim();
+      item.slug = slugify(name.trim(), { lower: true, strict: true });
+    }
+    if (startYear != null) item.startYear = Number(startYear);
+    if (endYear !== undefined) item.endYear = endYear != null ? Number(endYear) : null;
+    if (image !== undefined) item.image = image || null;
+    if (bio !== undefined) item.bio = bio || null;
+    if (sortOrder !== undefined) item.sortOrder = sortOrder;
+    if (isActive !== undefined) item.isActive = !!isActive;
+    await item.save();
+    return Response(res, 200, { item });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.deleteRector = async (req, res) => {
+  try {
+    const item = await Rector.findByPk(req.params.id);
+    if (!item) return Response(res, 404, { reason: 'Recteur introuvable' });
+    await item.destroy();
+    return Response(res, 200, { deleted: true });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+// ---------------- Partners ----------------
+exports.listPartners = async (req, res) => {
+  try {
+    const where = {};
+    if (req.query.activeOnly === 'true') where.isActive = true;
+    const items = await Partner.findAll({ where, order: [['sortOrder', 'ASC'], ['name', 'ASC']] });
+    return Response(res, 200, { length: items.length, rows: items });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.getPartner = async (req, res) => {
+  try {
+    const item = await Partner.findByPk(req.params.id);
+    if (!item) return Response(res, 404, { reason: 'Partenaire introuvable' });
+    return Response(res, 200, { item });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.getPartnerBySlug = async (req, res) => {
+  try {
+    const item = await Partner.findOne({ where: { slug: req.params.slug } });
+    if (!item) return Response(res, 404, { reason: 'Partenaire introuvable' });
+    return Response(res, 200, { item });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.createPartner = async (req, res) => {
+  try {
+    const { name, logo, url, description, sortOrder, isActive } = req.body;
+    if (!name?.trim())
+      return Response(res, 401, { reason: 'Nom requis' });
+    let slug = slugify(name.trim(), { lower: true, strict: true });
+    const existing = await Partner.findOne({ where: { slug } });
+    if (existing) slug = `${slug}-${Date.now()}`;
+    const item = await Partner.create({
+      name: name.trim(),
+      slug,
+      logo: logo || null,
+      url: url || null,
+      description: description || null,
+      sortOrder: sortOrder ?? 0,
+      isActive: isActive === undefined ? true : !!isActive,
+    });
+    return Response(res, 201, { item });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.updatePartner = async (req, res) => {
+  try {
+    const item = await Partner.findByPk(req.params.id);
+    if (!item) return Response(res, 404, { reason: 'Partenaire introuvable' });
+    const { name, logo, url, description, sortOrder, isActive } = req.body;
+    if (name?.trim()) {
+      item.name = name.trim();
+      item.slug = slugify(name.trim(), { lower: true, strict: true });
+    }
+    if (logo !== undefined) item.logo = logo || null;
+    if (url !== undefined) item.url = url || null;
+    if (description !== undefined) item.description = description || null;
+    if (sortOrder !== undefined) item.sortOrder = sortOrder;
+    if (isActive !== undefined) item.isActive = !!isActive;
+    await item.save();
+    return Response(res, 200, { item });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.deletePartner = async (req, res) => {
+  try {
+    const item = await Partner.findByPk(req.params.id);
+    if (!item) return Response(res, 404, { reason: 'Partenaire introuvable' });
     await item.destroy();
     return Response(res, 200, { deleted: true });
   } catch (e) {

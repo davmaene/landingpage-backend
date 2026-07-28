@@ -23,13 +23,16 @@ const Ue                = require('./Ue')(sequelize);
 const Ec                = require('./Ec')(sequelize);
 const Attribution       = require('./Attribution')(sequelize);
 const TeacherConfig     = require('./TeacherConfig')(sequelize);
+const KeyFact           = require('./KeyFact')(sequelize);
+const Rector            = require('./Rector')(sequelize);
+const Partner           = require('./Partner')(sequelize);
 
 // ─── Associations ──────────────────────────────────────────────────────────────
 const models = {
   User, Faculty, Filiere, Content, Newsletter,
   ContactMessage, PasswordResetToken, Schedule,
   Center, Faq, StaffMember, SpecialProgram, LoginHistory, SiteVisit,
-  Promotion, Ue, Ec, Attribution, TeacherConfig,
+  Promotion, Ue, Ec, Attribution, TeacherConfig, KeyFact, Rector, Partner,
 };
 
 Object.values(models).forEach((model) => {
