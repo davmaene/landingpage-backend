@@ -1,4 +1,3 @@
-// routes/contents.routes.js
 const express = require('express');
 const { requireAuth, requireRole } = require('../middleware/auth.middleware');
 const ctrl = require('../controllers/contents.controller');
@@ -14,5 +13,6 @@ router.post('/:id/broadcast', requireAuth, ctrl.broadcast);
 router.post('/:id/approve', requireAuth, requireRole('super_admin'), ctrl.approve);
 router.post('/:id/reject', requireAuth, requireRole('super_admin'), ctrl.reject);
 router.delete('/:id', requireAuth, ctrl.remove);
+router.get('/:slug', ctrl.getBySlugOnlyForBot);
 
 module.exports = router;

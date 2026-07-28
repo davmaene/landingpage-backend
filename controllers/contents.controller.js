@@ -1,10 +1,10 @@
-// controllers/contents.controller.js
 const slugify = require('slugify');
 const { Op } = require('sequelize');
 const { Content, User, Faculty, Center, Filiere, SpecialProgram, Newsletter } = require('../models');
 const { Response } = require('../utils/Response');
 const { sendMail, isConfigured } = require('../utils/mailer');
 const { publicationBroadcastTemplate } = require('../utils/emailTemplates');
+<<<<<<< HEAD
 
 const parseGallery = (raw) => {
   if (!raw) return [];
@@ -24,6 +24,10 @@ const stringifyGallery = (raw) => {
   const arr = parseGallery(raw).slice(0, 15);
   return arr.length ? JSON.stringify(arr) : null;
 };
+=======
+const { isSocialBot, generateOgHtml, parseGallery, stringifyGallery } = require('../utils/helpers');
+const path = require("path");
+>>>>>>> b7109f0623da0bcf96fe56de3569d961dfd065d5
 
 const ALLOWED_ATTACHMENT_TYPES = ['youtube', 'video', 'pdf'];
 const ALLOWED_ATTACHMENT_LAYOUTS = ['portrait', 'landscape', 'auto'];
@@ -88,6 +92,33 @@ exports.list = async (req, res) => {
   }
 };
 
+exports.getBySlugOnlyForBot = async (req, res) => {
+  try {
+    const slug = req.params.slug;
+    const userAgent = req.headers['user-agent'] || '';
+
+    const item = await Content.findOne({
+      where: { slug, status: 'published' },
+      include: authorIncludes,
+    });
+    
+    if (!item) {
+      return res.status(404).send('Article non trouvé');
+    }
+
+    if (isSocialBot(userAgent)) {
+      const html = generateOgHtml(item, req);
+      return res.status(200).send(html);
+    }
+
+    const indexPath = path.join(__dirname, '..', 'build', 'index.html');
+    res.sendFile(indexPath);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Erreur serveur');
+  }
+}
+
 exports.getBySlug = async (req, res) => {
   try {
     const item = await Content.findOne({
@@ -149,7 +180,6 @@ exports.create = async (req, res) => {
     });
     return Response(res, 201, { item: mapContentRow(item) });
   } catch (e) {
-    console.error(e);
     return Response(res, 500, { reason: e.message });
   }
 };

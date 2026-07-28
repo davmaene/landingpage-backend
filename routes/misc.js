@@ -1,4 +1,3 @@
-// routes/misc.routes.js — Faculties, Search, Newsletter, Contact, Dashboard, Users
 const express = require('express');
 const { requireAuth, requireRole } = require('../middleware/auth.middleware');
 const c = require('../controllers/misc.controller');
