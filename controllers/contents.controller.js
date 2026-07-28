@@ -4,7 +4,6 @@ const { Content, User, Faculty, Center, Filiere, SpecialProgram, Newsletter } = 
 const { Response } = require('../utils/Response');
 const { sendMail, isConfigured } = require('../utils/mailer');
 const { publicationBroadcastTemplate } = require('../utils/emailTemplates');
-<<<<<<< HEAD
 
 const parseGallery = (raw) => {
   if (!raw) return [];
@@ -24,10 +23,6 @@ const stringifyGallery = (raw) => {
   const arr = parseGallery(raw).slice(0, 15);
   return arr.length ? JSON.stringify(arr) : null;
 };
-=======
-const { isSocialBot, generateOgHtml, parseGallery, stringifyGallery } = require('../utils/helpers');
-const path = require("path");
->>>>>>> b7109f0623da0bcf96fe56de3569d961dfd065d5
 
 const ALLOWED_ATTACHMENT_TYPES = ['youtube', 'video', 'pdf'];
 const ALLOWED_ATTACHMENT_LAYOUTS = ['portrait', 'landscape', 'auto'];
