@@ -10,7 +10,7 @@ const serializeStaff = (values) => {
     ...values
   };
   STAFF_JSON_FIELDS.forEach((f) => {
-    if (out[f] !== undefined && typeof out[f] !== 'string') out[f] = JSON.stringify(out[f] ? ? null);
+    if (out[f] !== undefined && typeof out[f] !== 'string') out[f] = JSON.stringify(out[f] ?? null);
   });
   return out;
 };
