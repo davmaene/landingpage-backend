@@ -30,7 +30,7 @@ const {
 
 const app = express();
 
-const allowedOrigins = ['http://localhost:3001', 'http://localhost:3000', 'https://ulpgl.net', 'https://ulpgl.ac.cd'];
+const allowedOrigins = ['http://localhost:3001', 'http://localhost:3000', 'https://ulpgl.vercel.app', 'https://ulpgl.net', 'https://ulpgl.ac.cd'];
 
 app.use(cors({
   origin: function (origin, callback) {
