@@ -98,7 +98,7 @@ async function start() {
     await sequelize.sync({
       alter: true
     });
-    await seedDatabase();
+    // await seedDatabase();
 
     // ── Purge automatique de l'historique toutes les heures (rétention 24h) ──
     // const { LoginHistory } = require('./models');
