@@ -95,9 +95,9 @@ async function start() {
     await sequelize.authenticate();
     console.log('[ SYNC ] Database connected');
     await cleanupIndexes(sequelize);
-    await sequelize.sync({
-      alter: true
-    });
+    // await sequelize.sync({
+    //   alter: true
+    // });
     // await seedDatabase();
 
     // ── Purge automatique de l'historique toutes les heures (rétention 24h) ──
