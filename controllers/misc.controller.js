@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
 const slugify = require('slugify');
-const { Faculty, Filiere, Content, Newsletter, ContactMessage, User, Schedule, Faq, Center, StaffMember, SpecialProgram, KeyFact, Rector, Partner, serializeStaff, deserializeStaff } = require('../models');
+const { Faculty, Filiere, Content, Newsletter, ContactMessage, User, Schedule, Faq, Center, StaffMember, SpecialProgram, KeyFact, Rector, Partner, AdmissionGuide, serializeStaff, deserializeStaff } = require('../models');
 
 const userIncludes = [
   { model: Faculty, as: 'faculty' },
@@ -966,6 +966,33 @@ exports.deletePartner = async (req, res) => {
     if (!item) return Response(res, 404, { reason: 'Partenaire introuvable' });
     await item.destroy();
     return Response(res, 200, { deleted: true });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+// ---------------- Admission Guide (singleton) ----------------
+exports.getAdmissionGuide = async (req, res) => {
+  try {
+    const item = await AdmissionGuide.findOne({ order: [['id', 'ASC']] });
+    return Response(res, 200, { item: item || null });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.saveAdmissionGuide = async (req, res) => {
+  try {
+    const { title, academicYear, introHtml, contentHtml, contactPhones } = req.body;
+    let item = await AdmissionGuide.findOne({ order: [['id', 'ASC']] });
+    if (!item) item = AdmissionGuide.build({});
+    if (title !== undefined) item.title = title?.trim() || "Guide d'inscription";
+    if (academicYear !== undefined) item.academicYear = academicYear?.trim() || null;
+    if (introHtml !== undefined) item.introHtml = introHtml || null;
+    if (contentHtml !== undefined) item.contentHtml = contentHtml || null;
+    if (contactPhones !== undefined) item.contactPhones = contactPhones?.trim() || null;
+    await item.save();
+    return Response(res, 200, { item });
   } catch (e) {
     return Response(res, 500, { reason: e.message });
   }

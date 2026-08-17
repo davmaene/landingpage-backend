@@ -4,6 +4,7 @@ const { DataTypes } = require('sequelize');
 module.exports = (sequelize) => {
   const Faq = sequelize.define('Faq', {
     id:         { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    slug:       { type: DataTypes.STRING(300), allowNull: true },
     question:   { type: DataTypes.STRING(500), allowNull: false },
     questionEn: { type: DataTypes.STRING(500), allowNull: true },
     answer:     { type: DataTypes.TEXT, allowNull: false },

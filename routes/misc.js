@@ -69,4 +69,8 @@ router.post('/partners', requireAuth, requireRole('super_admin'), c.createPartne
 router.put('/partners/:id', requireAuth, requireRole('super_admin'), c.updatePartner);
 router.delete('/partners/:id', requireAuth, requireRole('super_admin'), c.deletePartner);
 
+// Admission Guide
+router.get('/admission-guide', c.getAdmissionGuide);
+router.put('/admission-guide', requireAuth, requireRole('super_admin'), c.saveAdmissionGuide);
+
 module.exports = router;

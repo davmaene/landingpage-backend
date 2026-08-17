@@ -26,6 +26,7 @@ const TeacherConfig     = require('./TeacherConfig')(sequelize);
 const KeyFact           = require('./KeyFact')(sequelize);
 const Rector            = require('./Rector')(sequelize);
 const Partner           = require('./Partner')(sequelize);
+const AdmissionGuide    = require('./AdmissionGuide')(sequelize);
 
 // ─── Associations ──────────────────────────────────────────────────────────────
 const models = {
@@ -33,6 +34,7 @@ const models = {
   ContactMessage, PasswordResetToken, Schedule,
   Center, Faq, StaffMember, SpecialProgram, LoginHistory, SiteVisit,
   Promotion, Ue, Ec, Attribution, TeacherConfig, KeyFact, Rector, Partner,
+  AdmissionGuide,
 };
 
 Object.values(models).forEach((model) => {
