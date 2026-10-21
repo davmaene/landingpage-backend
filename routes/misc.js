@@ -73,4 +73,8 @@ router.delete('/partners/:id', requireAuth, requireRole('super_admin'), c.delete
 router.get('/admission-guide', c.getAdmissionGuide);
 router.put('/admission-guide', requireAuth, requireRole('super_admin'), c.saveAdmissionGuide);
 
+// Frais académiques
+router.get('/fees', c.listFees);
+router.put('/fees', requireAuth, requireRole('super_admin'), c.saveFees);
+
 module.exports = router;

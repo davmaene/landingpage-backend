@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
 const slugify = require('slugify');
-const { Faculty, Filiere, Content, Newsletter, ContactMessage, User, Schedule, Faq, Center, StaffMember, SpecialProgram, KeyFact, Rector, Partner, AdmissionGuide, serializeStaff, deserializeStaff } = require('../models');
+const { Faculty, Filiere, Content, Newsletter, ContactMessage, User, Schedule, Faq, Center, StaffMember, SpecialProgram, KeyFact, Rector, Partner, AdmissionGuide, Fee, serializeStaff, deserializeStaff } = require('../models');
 
 const userIncludes = [
   { model: Faculty, as: 'faculty' },
@@ -11,6 +11,7 @@ const userIncludes = [
 const { sendMail, isConfigured } = require('../utils/mailer');
 const { publicationBroadcastTemplate } = require('../utils/emailTemplates');
 const { Response } = require('../utils/Response');
+const { sanitizeDetails, sanitizeTranches, computeTotal, toApiFee } = require('../utils/fees');
 
 const staffRefAttributes = ['id', 'name', 'role', 'image', 'slug'];
 const facultyStaffIncludes = [
@@ -997,3 +998,67 @@ exports.saveAdmissionGuide = async (req, res) => {
     return Response(res, 500, { reason: e.message });
   }
 };
+
+// ---------------- Frais académiques ----------------
+// GET  /api/fees  → grille complète (le total est recalculé à chaque lecture)
+// PUT  /api/fees  → remplace la grille complète (backoffice)
+exports.listFees = async (req, res) => {
+  try {
+    const rows = await Fee.findAll({ order: [['sortOrder', 'ASC'], ['id', 'ASC']] });
+    const list = rows.map((row, i) => toApiFee(row, i));
+    return Response(res, 200, { length: list.length, rows: list });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.saveFees = async (req, res) => {
+  try {
+    const { rows, academicYear } = req.body || {};
+    if (!Array.isArray(rows)) {
+      return Response(res, 401, { reason: 'Grille de frais invalide' });
+    }
+
+    const existing = await Fee.findAll();
+    const byId = new Map(existing.map((row) => [row.id, row]));
+    const keptIds = new Set();
+    const saved = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const raw = rows[i] || {};
+      const details = sanitizeDetails(raw.details_frais);
+      const tranches = sanitizeTranches(raw.tranches);
+      const payload = {
+        promotion: String(raw.promotion ?? '').trim(),
+        faculte: String(raw.faculte ?? '').trim(),
+        detailsFrais: JSON.stringify(details),
+        tranches: JSON.stringify(tranches),
+        total: computeTotal(details),
+        academicYear: academicYear?.trim() || null,
+        sortOrder: i + 1,
+      };
+
+      const id = Number(raw.id);
+      if (id && byId.has(id)) {
+        const row = byId.get(id);
+        await row.update(payload);
+        keptIds.add(row.id);
+        saved.push(toApiFee(row, i));
+      } else {
+        const row = await Fee.create(payload);
+        keptIds.add(row.id);
+        saved.push(toApiFee(row, i));
+      }
+    }
+
+    // Supprime les lignes retirées du tableau par l'administrateur.
+    for (const row of existing) {
+      if (!keptIds.has(row.id)) await row.destroy();
+    }
+
+    return Response(res, 200, { length: saved.length, rows: saved });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
