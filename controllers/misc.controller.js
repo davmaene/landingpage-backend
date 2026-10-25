@@ -1063,8 +1063,37 @@ exports.saveFees = async (req, res) => {
 };
 
 // ---------------- Site Settings ----------------
+const DEFAULT_SITE_SETTINGS = [
+  {
+    key: 'annual_theme',
+    value: "L'intelligence artificielle au service de l'excellence académique",
+    label: "Thème de l'année",
+    description: "Thème académique annuel affiché sur la page d'accueil",
+  },
+  {
+    key: 'annual_theme_image',
+    value: '',
+    label: "Image du thème de l'année",
+    description: "URL de l'image illustrant le thème de l'année",
+  },
+];
+
+let siteSettingsReady = false;
+
+async function ensureSiteSettings() {
+  if (siteSettingsReady) return;
+  await SiteSetting.sync();
+  for (const defaults of DEFAULT_SITE_SETTINGS) {
+    await SiteSetting.findOrCreate({ where: { key: defaults.key }, defaults });
+  }
+  siteSettingsReady = true;
+}
+
+exports.ensureSiteSettings = ensureSiteSettings;
+
 exports.getSetting = async (req, res) => {
   try {
+    await ensureSiteSettings();
     const item = await SiteSetting.findOne({ where: { key: req.params.key } });
     if (!item) return Response(res, 200, { item: null, value: null });
     return Response(res, 200, { item, value: item.value });
@@ -1075,6 +1104,7 @@ exports.getSetting = async (req, res) => {
 
 exports.listSettings = async (req, res) => {
   try {
+    await ensureSiteSettings();
     const items = await SiteSetting.findAll({ order: [['key', 'ASC']] });
     return Response(res, 200, { length: items.length, rows: items });
   } catch (e) {
@@ -1084,6 +1114,7 @@ exports.listSettings = async (req, res) => {
 
 exports.upsertSetting = async (req, res) => {
   try {
+    await ensureSiteSettings();
     const { key } = req.params;
     const { value, label, description } = req.body;
     if (!key) return Response(res, 400, { reason: 'Clé requise' });

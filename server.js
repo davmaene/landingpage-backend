@@ -95,6 +95,12 @@ async function start() {
     await sequelize.authenticate();
     console.log('[ SYNC ] Database connected');
     await cleanupIndexes(sequelize);
+    try {
+      const { ensureSiteSettings } = require('./controllers/misc.controller');
+      await ensureSiteSettings();
+    } catch (err) {
+      console.warn('[ SYNC ] site_settings:', err.message);
+    }
     // await sequelize.sync({
     //   alter: true
     // });
