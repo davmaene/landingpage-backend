@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
 const slugify = require('slugify');
-const { Faculty, Filiere, Content, Newsletter, ContactMessage, User, Schedule, Faq, Center, StaffMember, SpecialProgram, KeyFact, Rector, Partner, AdmissionGuide, Fee, serializeStaff, deserializeStaff } = require('../models');
+const { Faculty, Filiere, Content, Newsletter, ContactMessage, User, Schedule, Faq, Center, StaffMember, SpecialProgram, KeyFact, Rector, Partner, AdmissionGuide, Fee, SiteSetting, serializeStaff, deserializeStaff } = require('../models');
 
 const userIncludes = [
   { model: Faculty, as: 'faculty' },
@@ -1062,3 +1062,38 @@ exports.saveFees = async (req, res) => {
   }
 };
 
+// ---------------- Site Settings ----------------
+exports.getSetting = async (req, res) => {
+  try {
+    const item = await SiteSetting.findOne({ where: { key: req.params.key } });
+    if (!item) return Response(res, 200, { item: null, value: null });
+    return Response(res, 200, { item, value: item.value });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.listSettings = async (req, res) => {
+  try {
+    const items = await SiteSetting.findAll({ order: [['key', 'ASC']] });
+    return Response(res, 200, { length: items.length, rows: items });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};
+
+exports.upsertSetting = async (req, res) => {
+  try {
+    const { key } = req.params;
+    const { value, label, description } = req.body;
+    if (!key) return Response(res, 400, { reason: 'Clé requise' });
+    const [item] = await SiteSetting.findOrCreate({ where: { key }, defaults: { value: value ?? null, label: label ?? null, description: description ?? null } });
+    if (value !== undefined) item.value = value;
+    if (label !== undefined) item.label = label;
+    if (description !== undefined) item.description = description;
+    await item.save();
+    return Response(res, 200, { item, value: item.value });
+  } catch (e) {
+    return Response(res, 500, { reason: e.message });
+  }
+};

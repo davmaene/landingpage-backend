@@ -77,4 +77,9 @@ router.put('/admission-guide', requireAuth, requireRole('super_admin'), c.saveAd
 router.get('/fees', c.listFees);
 router.put('/fees', requireAuth, requireRole('super_admin'), c.saveFees);
 
+// Site Settings
+router.get('/site-settings', c.listSettings);
+router.get('/site-settings/:key', c.getSetting);
+router.put('/site-settings/:key', requireAuth, requireRole('super_admin'), c.upsertSetting);
+
 module.exports = router;
